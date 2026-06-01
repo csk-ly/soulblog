@@ -83,7 +83,7 @@ export default function ConfigDialog({ open, onClose }: ConfigDialogProps) {
 		try {
 			const text = await file.text()
 			setPrivateKey(text)
-			await handleSave()
+			toast.success('密钥导入成功，请再次点击保存')
 		} catch (error) {
 			console.error('Failed to read private key:', error)
 			toast.error('读取密钥文件失败')

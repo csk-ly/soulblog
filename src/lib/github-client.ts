@@ -3,6 +3,7 @@
 import { useAuthStore } from '@/hooks/use-auth'
 import { KJUR, KEYUTIL } from 'jsrsasign'
 import { toast } from 'sonner'
+import { GITHUB_CONFIG } from '@/consts'
 
 export const GH_API = 'https://api.github.com'
 
@@ -41,6 +42,9 @@ export async function getInstallationId(jwt: string, owner: string, repo: string
 	})
 	if (res.status === 401) handle401Error()
 	if (res.status === 422) handle422Error()
+	if (res.status === 404) {
+		throw new Error(`GitHub App 未安装到仓库 ${owner}/${repo}，请在 GitHub 上安装 App (ID: ${GITHUB_CONFIG.APP_ID}) 到该仓库`)
+	}
 	if (!res.ok) throw new Error(`installation lookup failed: ${res.status}`)
 	const data = await res.json()
 	return data.id
