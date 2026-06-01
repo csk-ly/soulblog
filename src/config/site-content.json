@@ -45,7 +45,7 @@
 		{
 			"id": "github",
 			"type": "github",
-			"value": "https://github.com/csk-ly",
+			"value": "https://github.com/",
 			"label": "Github",
 			"order": 3
 		},
