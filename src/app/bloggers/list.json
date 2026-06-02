@@ -17,7 +17,7 @@
 	{
 		"name": "Josh W. Comeau",
 		"url": "https://www.joshwcomeau.com/",
-		"avatar": "https://www.joshwcomeau.com/favicon.png",
+		"avatar": "https://www.joshwcomeau.com/favicon.ico",
 		"description": "John blog 更像是一个课程网站，每一篇文章都书写的很好，每次阅读都能吸收到新的东西。网站设计也恰到好处，工整、有趣。",
 		"stars": 5
 	},
@@ -93,7 +93,7 @@
 	{
 		"name": "BlogFinder",
 		"url": "https://bf.zzxworld.com/",
-		"avatar": "https://bf.zzxworld.com/images/favicon.png",
+		"avatar": "https://bf.zzxworld.com/images/favicon.ico",
 		"description": "一个 blog 收集网站，可以查阅有哪些 blog，也可以直接看最近谁更新了什么",
 		"stars": 3
 	},
@@ -160,7 +160,7 @@
 	{
 		"name": "阿猫的博客",
 		"url": "https://ameow.xyz/",
-		"avatar": "https://ameow.xyz/upload/favicon.png",
+		"avatar": "https://ameow.xyz/upload/favicon.ico",
 		"description": "可爱的网站，一直在更新他的猫鱼周刊。",
 		"stars": 3
 	},

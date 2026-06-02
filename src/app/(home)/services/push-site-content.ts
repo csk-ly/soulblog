@@ -38,7 +38,7 @@ export async function pushSiteContent(
 		const contentBase64 = await fileToBase64NoPrefix(faviconItem.file)
 		const blobData = await createBlob(token, GITHUB_CONFIG.OWNER, GITHUB_CONFIG.REPO, contentBase64, 'base64')
 		treeItems.push({
-			path: 'public/favicon.png',
+			path: 'public/favicon.ico',
 			mode: '100644',
 			type: 'blob',
 			sha: blobData.sha
