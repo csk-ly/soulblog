@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 
 const DOPAMINE_COLORS = [
 	'#FF6B9D',
