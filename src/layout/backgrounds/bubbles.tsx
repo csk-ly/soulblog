@@ -70,13 +70,20 @@ const BASE_CONFIG: BubbleConfig[] = [
 ]
 
 export default function Bubbles() {
+	const [mounted, setMounted] = useState(false)
+
+	useEffect(() => {
+		setMounted(true)
+	}, [])
+
 	const bubbles = useMemo<BubbleItem[]>(() => {
+		if (!mounted) return []
 		return BASE_CONFIG.map(config => ({
 			...config,
 			color: pickColor(config.colorIndex),
 			char: randomChar()
 		}))
-	}, [])
+	}, [mounted])
 
 	return (
 		<div className='fixed inset-0 z-0 overflow-hidden'>

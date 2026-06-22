@@ -14,12 +14,13 @@ export default function ClockCard() {
 	const center = useCenterStore()
 	const { cardStyles, siteContent } = useConfigStore()
 	const editing = useLayoutEditStore(state => state.editing)
-	const [time, setTime] = useState(new Date())
+	const [time, setTime] = useState<Date | null>(null)
 	const styles = cardStyles.clockCard
 	const hiCardStyles = cardStyles.hiCard
 	const showSeconds = siteContent.clockShowSeconds ?? false
 
 	useEffect(() => {
+		setTime(new Date())
 		const interval = showSeconds ? 1000 : 5000
 		const timer = setInterval(() => {
 			setTime(new Date())
@@ -28,9 +29,9 @@ export default function ClockCard() {
 		return () => clearInterval(timer)
 	}, [showSeconds])
 
-	const hours = time.getHours().toString().padStart(2, '0')
-	const minutes = time.getMinutes().toString().padStart(2, '0')
-	const seconds = time.getSeconds().toString().padStart(2, '0')
+	const hours = time ? time.getHours().toString().padStart(2, '0') : '00'
+	const minutes = time ? time.getMinutes().toString().padStart(2, '0') : '00'
+	const seconds = time ? time.getSeconds().toString().padStart(2, '0') : '00'
 
 	const x = styles.offsetX !== null ? center.x + styles.offsetX : center.x + CARD_SPACING + hiCardStyles.width / 2
 	const y = styles.offsetY !== null ? center.y + styles.offsetY : center.y - styles.offset - styles.height
