@@ -315,8 +315,8 @@ export default function Page() {
 					onDragOver={handleDragOver}
 					onDragLeave={handleDragLeave}
 					onDrop={handleDrop}
-					className={`group hover:border-brand/20 card relative flex cursor-pointer flex-col items-center justify-center gap-3 text-center transition-colors hover:bg-white/80 ${
-						isDragging ? 'border-brand bg-white' : ''
+					className={`group hover:border-brand/20 card relative flex cursor-pointer flex-col items-center justify-center gap-3 text-center transition-colors hover:bg-white/12 ${
+						isDragging ? 'border-brand bg-white/8' : ''
 					}`}>
 					<input type='file' accept='image/*' multiple className='hidden' onChange={event => handleFiles(event.target.files)} />
 					<div className='bg-brand/10 text-brand/60 group-hover:bg-brand/10 flex h-20 w-20 items-center justify-center rounded-full text-3xl transition'>
@@ -330,16 +330,16 @@ export default function Page() {
 
 				{hasImages && (
 					<motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} className='card relative'>
-						<div className='text-secondary flex items-center justify-between border-b border-slate-200 pb-3 text-xs tracking-[0.2em] uppercase'>
+						<div className='text-secondary flex items-center justify-between border-b border-white/20 pb-3 text-xs tracking-[0.2em] uppercase'>
 							<span>已选择 {images.length} 张图片</span>
 							<span>{totalSize}</span>
 						</div>
-						<ul className='divide-y divide-slate-200'>
+						<ul className='divide-y divide-white/10'>
 							{images.map((item, index) => {
 								const { file, preview, converted, converting } = item
 								return (
 									<li key={`${file.name}-${index}`} className='flex items-center gap-4 py-3'>
-										<div className='h-12 w-12 overflow-hidden rounded-xl border border-slate-200 bg-slate-50'>
+										<div className='h-12 w-12 overflow-hidden rounded-xl border border-white/20 bg-white/6'>
 											<img src={preview} alt={file.name} className='h-full w-full object-cover' />
 										</div>
 										<div className='flex flex-1 flex-col'>
@@ -404,7 +404,7 @@ export default function Page() {
 									/>
 									<span className='w-12 text-right text-sm font-medium'>{Math.round(quality * 100)}%</span>
 								</div>
-								<p className='text-xs text-slate-500'>使用 canvas.toDataURL('image/webp', {quality.toFixed(2)})</p>
+								<p className='text-xs text-white/40'>使用 canvas.toDataURL('image/webp', {quality.toFixed(2)})</p>
 							</div>
 							<div className='flex items-center gap-3'>
 								<div className='flex items-center gap-2'>
@@ -428,9 +428,9 @@ export default function Page() {
 											step={100}
 											value={maxWidth}
 											onChange={event => setMaxWidth(Math.max(100, parseInt(event.target.value) || 1200))}
-											className='w-24 rounded border border-slate-200 px-2 py-1 text-sm'
+											className='w-24 rounded border border-white/20 px-2 py-1 text-sm'
 										/>
-										<span className='text-xs text-slate-500'>px</span>
+										<span className='text-xs text-white/40'>px</span>
 									</div>
 								)}
 							</div>
@@ -439,13 +439,13 @@ export default function Page() {
 							<button
 								onClick={handleConvertAll}
 								disabled={!hasConvertible || batchConverting}
-								className='rounded-full border border-slate-200 px-4 py-2 font-medium transition disabled:cursor-not-allowed disabled:border-slate-200 disabled:text-slate-300'>
+								className='rounded-full border border-white/20 px-4 py-2 font-medium transition disabled:cursor-not-allowed disabled:border-white/20 disabled:text-white/20'>
 								{batchConverting ? '全部转换中…' : '全部转换'}
 							</button>
 							<button
 								onClick={handleDownloadAll}
 								disabled={!hasConverted}
-								className='border-brand text-brand rounded-full border px-4 py-2 font-semibold transition disabled:cursor-not-allowed disabled:border-slate-200 disabled:text-slate-300'>
+								className='border-brand text-brand rounded-full border px-4 py-2 font-semibold transition disabled:cursor-not-allowed disabled:border-white/20 disabled:text-white/20'>
 								全部下载
 							</button>
 						</div>
@@ -459,13 +459,13 @@ export default function Page() {
 						<div className='flex flex-col items-end p-4'>
 							<div>
 								<div className='text-secondary text-center text-sm font-medium'>原图 ({formatBytes(images[compareIndex].file.size)})</div>
-								<img src={images[compareIndex].preview} alt='Original' className='mt-3 max-h-[90vh] rounded-xl bg-slate-100' />
+								<img src={images[compareIndex].preview} alt='Original' className='mt-3 max-h-[90vh] rounded-xl bg-white/6' />
 							</div>
 						</div>
 						<div className='flex flex-col items-start p-4'>
 							<div>
 								<div className='text-secondary text-center text-sm font-medium'>WEBP ({formatBytes(images[compareIndex].converted!.size)})</div>
-								<img src={images[compareIndex].converted!.url} alt='Converted' className='mt-3 max-h-[90vh] rounded-xl bg-slate-100' />
+								<img src={images[compareIndex].converted!.url} alt='Converted' className='mt-3 max-h-[90vh] rounded-xl bg-white/6' />
 							</div>
 						</div>
 					</div>

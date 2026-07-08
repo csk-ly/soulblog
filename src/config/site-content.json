@@ -6,13 +6,13 @@
 	},
 	"theme": {
 		"colorBrand": "#2fcbe7",
-		"colorPrimary": "#5B423F",
-		"colorSecondary": "#8b7667",
+		"colorPrimary": "#e8eaed",
+		"colorSecondary": "#9aa0a6",
 		"colorBrandSecondary": "#eec25e",
-		"colorBg": "#d4e8f3",
-		"colorBorder": "#ffffff",
-		"colorCard": "#ffffff99",
-		"colorArticle": "#ffffffcc"
+		"colorBg": "#0a0a0f",
+		"colorBorder": "rgba(255, 255, 255, 0.18)",
+		"colorCard": "rgba(255, 255, 255, 0.04)",
+		"colorArticle": "rgba(255, 255, 255, 0.03)"
 	},
 	"backgroundColors": [
 		"#f7da3987",

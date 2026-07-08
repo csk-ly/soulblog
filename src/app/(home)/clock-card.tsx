@@ -38,7 +38,7 @@ export default function ClockCard() {
 
 	return (
 		<HomeDraggableLayer cardKey='clockCard' x={x} y={y} width={styles.width} height={styles.height}>
-			<Card order={styles.order} width={styles.width} height={styles.height} x={x} y={y} className='p-2'>
+			<Card cardKey='clockCard' order={styles.order} width={styles.width} height={styles.height} x={x} y={y} className='p-2'>
 				{siteContent.enableChristmas && (
 					<>
 						<img
@@ -101,7 +101,7 @@ function SevenSegmentDigit({ value, className }: SevenSegmentDigitProps) {
 
 	const segments = segmentMap[value as keyof typeof segmentMap] || segmentMap[0]
 	const activeColor = 'var(--color-primary)'
-	const inactiveColor = 'rgba(0, 0, 0, 0.05)'
+	const inactiveColor = 'rgba(255, 255, 255, 0.06)'
 
 	return (
 		<svg width='29' height='52' viewBox='0 0 29 52' fill='none' xmlns='http://www.w3.org/2000/svg' className={className}>

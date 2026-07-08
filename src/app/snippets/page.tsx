@@ -147,14 +147,14 @@ export default function Page() {
 							whileTap={{ scale: 0.95 }}
 							onClick={handleCancel}
 							disabled={isSaving}
-							className='rounded-xl border bg-white/60 px-6 py-2 text-sm'>
+							className='rounded-xl border bg-white/8 px-6 py-2 text-sm'>
 							取消
 						</motion.button>
 						<motion.button
 							whileHover={{ scale: 1.05 }}
 							whileTap={{ scale: 0.95 }}
 							onClick={openManageDialog}
-							className='rounded-xl border bg-white/60 px-6 py-2 text-sm'>
+							className='rounded-xl border bg-white/8 px-6 py-2 text-sm'>
 							管理
 						</motion.button>
 						<motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} onClick={handleSaveClick} disabled={isSaving} className='brand-btn px-6'>
@@ -167,7 +167,7 @@ export default function Page() {
 							whileHover={{ scale: 1.05 }}
 							whileTap={{ scale: 0.95 }}
 							onClick={() => setIsEditMode(true)}
-							className='bg-card rounded-xl border px-6 py-2 text-sm backdrop-blur-sm transition-colors hover:bg-white/80'>
+							className='bg-card rounded-xl border px-6 py-2 text-sm backdrop-blur-sm transition-colors hover:bg-white/12'>
 							编辑
 						</motion.button>
 					)
@@ -205,7 +205,7 @@ export default function Page() {
 					<div className='mt-4 flex gap-3'>
 						<button
 							onClick={cancelManageChanges}
-							className='flex-1 rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm transition-colors hover:bg-gray-50'>
+							className='flex-1 rounded-lg border border-white/20 bg-white/4 px-4 py-2 text-sm transition-colors hover:bg-white/6'>
 							取消
 						</button>
 						<button onClick={applyManageChanges} className='brand-btn flex-1 justify-center px-4'>

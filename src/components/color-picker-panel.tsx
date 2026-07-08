@@ -198,7 +198,7 @@ export function ColorPickerPanel({ value, onChange, style, className }: ColorPic
 	return (
 		<div
 			data-color-picker-panel
-			className={cn('w-56 rounded-lg border bg-white p-3 shadow-lg select-none', className, show ? 'opacity-100' : 'opacity-0')}
+			className={cn('w-56 rounded-lg border bg-white/8 p-3 shadow-lg backdrop-blur-sm select-none', className, show ? 'opacity-100' : 'opacity-0')}
 			style={style}>
 			{/* Saturation and brightness picker */}
 			<div
@@ -279,7 +279,7 @@ export function ColorPickerPanel({ value, onChange, style, className }: ColorPic
 				type='text'
 				value={hex}
 				onChange={handleHexInputChange}
-				className='w-full rounded-md border px-2 py-1 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none'
+				className='w-full rounded-md border border-white/20 px-2 py-1 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none'
 				placeholder='#000000'
 			/>
 		</div>

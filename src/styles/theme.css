@@ -1,12 +1,12 @@
 @theme {
-	--color-primary: #334f52;
-	--color-secondary: #7b888e;
+	--color-primary: #e8eaed;
+	--color-secondary: #9aa0a6;
 	--color-brand-secondary: #1fc9e7;
-	--color-bg: #eeeeee;
-	--color-border: #fff;
+	--color-bg: #0a0a0f;
+	--color-border: rgba(255, 255, 255, 0.18);
 	--color-brand: #35bfab;
-	--color-card: #ffffff66;
-	--color-article: #ffffffcc;
+	--color-card: rgba(255, 255, 255, 0.04);
+	--color-article: rgba(255, 255, 255, 0.03);
 
 	--font-averia: 'Averia Gruesa Libre', sans-serif;
 	--font-sans:

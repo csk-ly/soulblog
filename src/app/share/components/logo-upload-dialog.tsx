@@ -73,7 +73,7 @@ export default function LogoUploadDialog({ currentLogo, onClose, onSubmit }: Log
 					<input ref={fileInputRef} type='file' accept='image/*' className='hidden' onChange={handleFileSelect} />
 					<div
 						onClick={() => fileInputRef.current?.click()}
-						className='mx-auto flex h-32 w-32 cursor-pointer items-center justify-center rounded-xl border border-gray-300 bg-secondary/10 transition-colors hover:bg-gray-200'>
+						className='mx-auto flex h-32 w-32 cursor-pointer items-center justify-center rounded-xl border border-white/20 bg-secondary/10 transition-colors hover:bg-white/6'>
 						{previewFile ? (
 							<img src={previewFile.previewUrl} alt='preview' className='h-full w-full rounded-xl object-cover' />
 						) : (
@@ -87,10 +87,10 @@ export default function LogoUploadDialog({ currentLogo, onClose, onSubmit }: Log
 
 				<div className='relative'>
 					<div className='absolute inset-0 flex items-center'>
-						<div className='w-full border-t border-gray-300'></div>
+						<div className='w-full border-t border-white/20'></div>
 					</div>
 					<div className='relative flex justify-center text-sm'>
-						<span className='text-secondary rounded-lg bg-white px-4 py-1'>或</span>
+						<span className='text-secondary rounded-lg bg-white/4 px-4 py-1'>或</span>
 					</div>
 				</div>
 
@@ -107,7 +107,7 @@ export default function LogoUploadDialog({ currentLogo, onClose, onSubmit }: Log
 							}
 						}}
 						placeholder='https://example.com/logo.png'
-						className='focus:ring-brand w-full rounded-lg border border-gray-300 bg-gray-200 px-4 py-2 focus:ring-2 focus:outline-none'
+						className='focus:ring-brand w-full rounded-lg border border-white/20 bg-white/6 px-4 py-2 focus:ring-2 focus:outline-none'
 					/>
 				</div>
 
@@ -118,7 +118,7 @@ export default function LogoUploadDialog({ currentLogo, onClose, onSubmit }: Log
 					<button
 						type='button'
 						onClick={handleClose}
-						className='flex-1 rounded-lg border border-gray-300 bg-white px-6 py-2.5 transition-colors hover:bg-gray-50'>
+						className='flex-1 rounded-lg border border-white/20 bg-white/4 px-6 py-2.5 transition-colors hover:bg-white/6'>
 						取消
 					</button>
 				</div>

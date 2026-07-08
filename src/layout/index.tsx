@@ -1,5 +1,6 @@
 'use client'
 import { PropsWithChildren } from 'react'
+import { usePathname } from 'next/navigation'
 import { useCenterInit } from '@/hooks/use-center'
 import StarfieldBackground from './backgrounds/starfield'
 import NavCard from '@/components/nav-card'
@@ -20,6 +21,8 @@ export default function Layout({ children }: PropsWithChildren) {
 	const currentBackgroundImageId = siteContent.currentBackgroundImageId
 	const currentBackgroundImage =
 		currentBackgroundImageId && currentBackgroundImageId.trim() ? backgroundImages.find(item => item.id === currentBackgroundImageId) : null
+	const pathname = usePathname()
+	const isHome = pathname === '/'
 
 	return (
 		<>
@@ -51,7 +54,18 @@ export default function Layout({ children }: PropsWithChildren) {
 				/>
 			)}
 			{/* <BlurredBubblesBackground colors={siteContent.backgroundColors} regenerateKey={regenerateKey} /> */}
-      <StarfieldBackground />
+			<StarfieldBackground />
+
+			{!isHome && (
+				<div
+					className='fixed inset-0 z-0'
+					style={{
+						background: 'rgba(10, 10, 15, 0)',
+						backdropFilter: 'blur(3px)',
+						WebkitBackdropFilter: 'blur(3px)'
+					}}
+				/>
+			)}
 
 			<main className='relative z-10 h-full'>
 				{children}

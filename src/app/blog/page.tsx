@@ -347,7 +347,7 @@ export default function BlogPage() {
 								onClick={() => setDisplayMode(option.value as DisplayMode)}
 								className={cn(
 									'btn-rounded px-3 py-1.5 text-xs font-medium transition-all',
-									displayMode === option.value ? 'bg-brand text-white shadow-sm' : 'text-secondary hover:text-brand hover:bg-white/60'
+									displayMode === option.value ? 'bg-brand text-white shadow-sm' : 'text-secondary hover:text-brand hover:bg-white/8'
 								)}>
 								{option.label}
 							</motion.button>
@@ -366,11 +366,11 @@ export default function BlogPage() {
 							initial={{ opacity: 0, scale: 0.95 }}
 							whileInView={{ opacity: 1, scale: 1 }}
 							transition={{ delay: INIT_DELAY / 2 }}
-							className='card relative w-full max-w-[840px] space-y-6'>
+							className='card subpage-card-glow relative w-full max-w-[840px] space-y-6'>
 							<div className='mb-3 flex items-center justify-between gap-3 text-base'>
 								<div className='flex items-center gap-3'>
 									<div className='font-medium'>{getGroupLabel(groupKey)}</div>
-									<div className='h-2 w-2 rounded-full bg-[#D9D9D9]'></div>
+									<div className='h-2 w-2 rounded-full bg-white/10'></div>
 									<div className='text-secondary text-sm'>{group.items.length} 篇文章</div>
 								</div>
 								{editMode &&
@@ -385,7 +385,7 @@ export default function BlogPage() {
 													'rounded-lg border px-3 py-1 text-xs transition-colors',
 													groupAllSelected
 														? 'border-brand/40 bg-brand/10 text-brand hover:bg-brand/20'
-														: 'text-secondary hover:border-brand/40 hover:text-brand border-transparent bg-white/60 hover:bg-white/80'
+														: 'text-secondary hover:border-brand/40 hover:text-brand border-transparent bg-white/8 hover:bg-white/12'
 												)}>
 												{groupAllSelected ? '取消全选' : '全选该分组'}
 											</motion.button>
@@ -408,7 +408,7 @@ export default function BlogPage() {
 												editMode
 													? cn(
 															'rounded-lg border px-3',
-															isSelected ? 'border-brand/60 bg-brand/5' : 'hover:border-brand/40 border-transparent hover:bg-white/60'
+															isSelected ? 'border-brand/60 bg-brand/5' : 'hover:border-brand/40 border-transparent hover:bg-white/8'
 														)
 													: 'cursor-pointer'
 											)}>
@@ -416,7 +416,7 @@ export default function BlogPage() {
 												<span
 													className={cn(
 														'flex h-4 w-4 items-center justify-center rounded-full border text-[10px] font-semibold',
-														isSelected ? 'border-brand bg-brand text-white' : 'border-[#D9D9D9] text-transparent'
+														isSelected ? 'border-brand bg-brand text-white' : 'border-white/20 text-transparent'
 													)}>
 													<Check />
 												</span>
@@ -483,7 +483,7 @@ export default function BlogPage() {
 								whileTap={{ scale: 0.95 }}
 								onClick={() => setCategoryModalOpen(true)}
 								disabled={saving}
-								className='rounded-xl border bg-white/60 px-4 py-2 text-sm transition-colors hover:bg-white/80'>
+								className='rounded-xl border bg-white/8 px-4 py-2 text-sm transition-colors hover:bg-white/12'>
 								分类
 							</motion.button>
 						)}
@@ -492,14 +492,14 @@ export default function BlogPage() {
 							whileTap={{ scale: 0.95 }}
 							onClick={handleCancel}
 							disabled={saving}
-							className='rounded-xl border bg-white/60 px-6 py-2 text-sm'>
+							className='rounded-xl border bg-white/8 px-6 py-2 text-sm'>
 							取消
 						</motion.button>
 						<motion.button
 							whileHover={{ scale: 1.05 }}
 							whileTap={{ scale: 0.95 }}
 							onClick={selectedCount === editableItems.length ? handleDeselectAll : handleSelectAll}
-							className='rounded-xl border bg-white/60 px-4 py-2 text-sm transition-colors hover:bg-white/80'>
+							className='rounded-xl border bg-white/8 px-4 py-2 text-sm transition-colors hover:bg-white/12'>
 							{selectedCount === editableItems.length ? '取消全选' : '全选'}
 						</motion.button>
 						<motion.button
@@ -520,7 +520,7 @@ export default function BlogPage() {
 							whileHover={{ scale: 1.05 }}
 							whileTap={{ scale: 0.95 }}
 							onClick={toggleEditMode}
-							className='bg-card rounded-xl border px-6 py-2 text-sm backdrop-blur-sm transition-colors hover:bg-white/80'>
+							className='bg-card rounded-xl border px-6 py-2 text-sm backdrop-blur-sm transition-colors hover:bg-white/12'>
 							编辑
 						</motion.button>
 					)

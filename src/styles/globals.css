@@ -91,18 +91,112 @@
 	}
 }
 
-@utility card {
-	@apply bg-card absolute rounded-[40px] border p-6;
-	box-shadow:
-		0 40px 50px -32px rgba(0, 0, 0, 0.05),
-		inset 0 0 20 rgba(255, 255, 255, 0.25);
-	backdrop-filter: blur(4px);
+@layer components {
+	.card {
+		position: absolute;
+		border-radius: 40px;
+		padding: 1.5rem;
+		transition:
+			border-color 0.3s ease,
+			background 0.3s ease;
+		border: 1px solid rgba(255, 255, 255, 0.18);
+		background: rgba(255, 255, 255, 0.02);
+		box-shadow: 0 0 30px rgba(0, 0, 0, 0.3);
+	}
 
-	&.squircle {
+	.card.squircle {
 		@supports (corner-shape: squircle) {
 			corner-shape: squircle;
-			@apply rounded-[64px];
+			border-radius: 64px;
 		}
+	}
+}
+
+.card-shimmer {
+	display: block;
+	position: absolute;
+	top: -1px !important;
+	left: -1px !important;
+	right: -1px !important;
+	bottom: -1px !important;
+	margin: 0 !important;
+	pointer-events: none;
+	overflow: hidden;
+	border-radius: 40px;
+	z-index: 20;
+}
+
+.card > .card-shimmer {
+	margin-top: 0 !important;
+}
+
+.card.squircle .card-shimmer {
+	@supports (corner-shape: squircle) {
+		corner-shape: squircle;
+		border-radius: 64px;
+	}
+}
+
+.card-shimmer::after {
+	content: '';
+	position: absolute;
+	inset: -120%;
+	background: linear-gradient(
+		var(--shimmer-angle, 115deg),
+		transparent 0%,
+		color-mix(in srgb, var(--color-brand) 70%, transparent) 25%,
+		color-mix(in srgb, var(--color-brand) 95%, transparent) 40%,
+		#ffffff 50%,
+		color-mix(in srgb, var(--color-brand-secondary) 95%, transparent) 60%,
+		color-mix(in srgb, var(--color-brand-secondary) 70%, transparent) 75%,
+		transparent 100%
+	);
+	filter: blur(40px);
+	transform: translate(var(--shimmer-from-x, -45%), var(--shimmer-from-y, -45%));
+	animation: card-shimmer-sweep 20s linear forwards;
+}
+
+@keyframes card-shimmer-sweep {
+	0% {
+		transform: translate(var(--shimmer-from-x, -45%), var(--shimmer-from-y, -45%));
+		opacity: 0;
+	}
+	20% {
+		opacity: 1;
+	}
+	80% {
+		opacity: 1;
+	}
+	100% {
+		transform: translate(var(--shimmer-to-x, 45%), var(--shimmer-to-y, 45%));
+		opacity: 0;
+	}
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.card-shimmer::after {
+		animation: none;
+		opacity: 0;
+	}
+}
+
+/* 子页面卡片 hover 边框呼吸 */
+@utility subpage-card-glow {
+	transition: border-color 0.3s ease;
+
+	&:hover {
+		animation: subpage-border-glow-breathe 3s ease-in-out infinite;
+	}
+}
+
+@keyframes subpage-border-glow-breathe {
+	0%, 100% {
+		border-color: rgba(53, 191, 171, 0.5);
+		box-shadow: 0 0 18px rgba(53, 191, 171, 0.45), inset 0 0 15px rgba(53, 191, 171, 0.12);
+	}
+	50% {
+		border-color: rgba(53, 191, 171, 0.9);
+		box-shadow: 0 0 36px rgba(53, 191, 171, 0.7), inset 0 0 24px rgba(53, 191, 171, 0.2);
 	}
 }
 

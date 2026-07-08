@@ -19,6 +19,7 @@ import { toast } from 'sonner'
 import ConfigDialog from './config-dialog/index'
 import { useEffect } from 'react'
 import SnowfallBackground from '@/layout/backgrounds/snowfall'
+import { ShimmerProvider } from './shimmer-context'
 
 export default function Home() {
 	const { maxSM } = useSize()
@@ -52,7 +53,7 @@ export default function Home() {
 	}, [setConfigDialogOpen])
 
 	return (
-		<>
+		<ShimmerProvider>
 			{siteContent.enableChristmas && <SnowfallBackground zIndex={0} count={!maxSM ? 125 : 20} />}
 
 			{editing && (
@@ -92,6 +93,6 @@ export default function Home() {
 
 			{siteContent.enableChristmas && <SnowfallBackground zIndex={2} count={!maxSM ? 125 : 20} />}
 			<ConfigDialog open={configDialogOpen} onClose={() => setConfigDialogOpen(false)} />
-		</>
+		</ShimmerProvider>
 	)
 }

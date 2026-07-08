@@ -58,7 +58,7 @@ export function ColorPicker({ value = '#000000', onChange, className }: ColorPic
 				ref={triggerRef}
 				type='button'
 				onClick={() => setOpen(!open)}
-				className={cn('h-10 w-10 rounded-lg border-2 border-white/20 shadow-sm transition-all hover:scale-105', className)}
+				className={cn('h-10 w-10 rounded-lg border-2 border-white/30 shadow-sm transition-all hover:scale-105', className)}
 				style={{ backgroundColor: value }}>
 				<span className='sr-only'>Select color</span>
 			</button>

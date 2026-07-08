@@ -3,8 +3,9 @@
 import { ANIMATION_DELAY } from '@/consts'
 import { motion } from 'motion/react'
 import { cn } from '@/lib/utils'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useSize } from '@/hooks/use-size'
+import { useCardShimmer } from '@/app/(home)/shimmer-context'
 
 interface Props {
 	className?: string
@@ -13,12 +14,15 @@ interface Props {
 	height?: number
 	x: number
 	y: number
+	cardKey?: string
 	children: React.ReactNode
 }
 
-export default function Card({ children, order, width, height, x, y, className }: Props) {
+export default function Card({ children, order, width, height, x, y, className, cardKey }: Props) {
 	const { maxSM, init } = useSize()
 	let [show, setShow] = useState(false)
+	const cardRef = useRef<HTMLDivElement>(null)
+	const shimmer = useCardShimmer(cardKey)
 	if (maxSM && init) order = 0
 
 	useEffect(() => {
@@ -35,14 +39,31 @@ export default function Card({ children, order, width, height, x, y, className }
 	if (show)
 		return (
 			<motion.div
-				className={cn('card squircle', className)}
+				ref={cardRef}
+				className={cn('card squircle group', className)}
 				initial={{ opacity: 0, scale: 0.6, left: x, top: y, width, height }}
 				animate={{ opacity: 1, scale: 1, left: x, top: y, width, height }}
 				whileHover={{ scale: 1.05 }}
 				whileTap={{ scale: 0.95 }}>
 				{children}
+				{shimmer && (
+					<span
+						key={shimmer.nonce}
+						className='card-shimmer'
+						style={
+							{
+								'--shimmer-angle': shimmer.angle,
+								'--shimmer-from-x': shimmer.fromX,
+								'--shimmer-from-y': shimmer.fromY,
+								'--shimmer-to-x': shimmer.toX,
+								'--shimmer-to-y': shimmer.toY
+							} as React.CSSProperties
+						}
+					/>
+				)}
 			</motion.div>
 		)
 
 	return null
 }
+

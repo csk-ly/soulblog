@@ -101,7 +101,7 @@ export default function LikeButton({ slug = 'yysuni', delay, className }: LikeBu
 							}}
 							exit={{ opacity: 0 }}
 							transition={{ duration: 0.8, ease: 'easeOut' }}>
-							<Heart className='fill-rose-400 text-rose-400' size={12} />
+							<Heart className='fill-brand text-brand' size={12} />
 						</motion.div>
 					))}
 				</AnimatePresence>
@@ -110,15 +110,12 @@ export default function LikeButton({ slug = 'yysuni', delay, className }: LikeBu
 					<motion.span
 						initial={{ scale: 0.4 }}
 						animate={{ scale: 1 }}
-						className={cn(
-							'absolute -top-2 left-9 min-w-6 rounded-full px-1.5 py-1 text-center text-xs text-white tabular-nums',
-							liked ? 'bg-rose-400' : 'bg-gray-300'
-						)}>
+						className='absolute -top-2 left-9 min-w-6 rounded-full bg-brand px-1.5 py-1 text-center text-xs text-white tabular-nums'>
 						{count}
 					</motion.span>
 				)}
 				<motion.div animate={justLiked ? { scale: [1, 1.4, 1], rotate: [0, -10, 10, 0] } : {}} transition={{ duration: 0.6, ease: 'easeOut' }}>
-					<Heart className={clsx('heartbeat', liked ? 'fill-rose-400 text-rose-400' : 'fill-rose-200 text-rose-200')} size={28} />
+					<Heart className={clsx('heartbeat', liked ? 'fill-rose-500 text-rose-500' : 'fill-brand text-brand')} size={28} />
 				</motion.div>
 			</motion.button>
 		)
