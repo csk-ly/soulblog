@@ -88,6 +88,9 @@ devDependencies:
   babel-plugin-react-compiler:
     specifier: 1.0.0
     version: 1.0.0
+  baseline-browser-mapping:
+    specifier: ^2.10.38
+    version: 2.10.43
   code-inspector-plugin:
     specifier: ^1.2.10
     version: 1.5.1
@@ -4037,8 +4040,8 @@ packages:
     engines: {node: 18 || 20 || >=22}
     dev: false
 
-  /baseline-browser-mapping@2.10.32:
-    resolution: {integrity: sha512-wbPvpyjJPC0zdfdKXxqEL3Ea+bOMD/87X4lftiJkkaBiuG6ALQy1SLmEd7BSmVCuwCQsBrCamgBoLyfFDD1EPg==}
+  /baseline-browser-mapping@2.10.43:
+    resolution: {integrity: sha512-AjYpR78kDWAY3Efj+cDTFH9t9SCoL7OoTp1BOb0mQV7S+6CiLwnWM3FyxhJtdPufDFKzmCSFoUncKjWgJEZTCQ==}
     engines: {node: '>=6.0.0'}
     hasBin: true
 
@@ -4095,7 +4098,7 @@ packages:
     engines: {node: ^6 || ^7 || ^8 || ^9 || ^10 || ^11 || ^12 || >=13.7}
     hasBin: true
     dependencies:
-      baseline-browser-mapping: 2.10.32
+      baseline-browser-mapping: 2.10.43
       caniuse-lite: 1.0.30001793
       electron-to-chromium: 1.5.364
       node-releases: 2.0.46
