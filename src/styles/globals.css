@@ -144,16 +144,18 @@
 	background: linear-gradient(
 		var(--shimmer-angle, 115deg),
 		transparent 0%,
-		color-mix(in srgb, var(--color-brand) 70%, transparent) 25%,
-		color-mix(in srgb, var(--color-brand) 95%, transparent) 40%,
-		#ffffff 50%,
-		color-mix(in srgb, var(--color-brand-secondary) 95%, transparent) 60%,
-		color-mix(in srgb, var(--color-brand-secondary) 70%, transparent) 75%,
+		transparent 35%,
+		color-mix(in srgb, var(--shimmer-color-1, #FF6B6B) 50%, transparent) 40%,
+		color-mix(in srgb, var(--shimmer-color-2, #4ECDC4) 60%, transparent) 47%,
+		color-mix(in srgb, var(--shimmer-color-3, #45B7D1) 60%, transparent) 50%,
+		color-mix(in srgb, var(--shimmer-color-2, #4ECDC4) 60%, transparent) 53%,
+		color-mix(in srgb, var(--shimmer-color-1, #FF6B6B) 50%, transparent) 60%,
+		transparent 65%,
 		transparent 100%
 	);
-	filter: blur(40px);
+	filter: blur(10px);
 	transform: translate(var(--shimmer-from-x, -45%), var(--shimmer-from-y, -45%));
-	animation: card-shimmer-sweep 20s linear forwards;
+	animation: card-shimmer-sweep 1.2s ease-out forwards;
 }
 
 @keyframes card-shimmer-sweep {
@@ -161,10 +163,10 @@
 		transform: translate(var(--shimmer-from-x, -45%), var(--shimmer-from-y, -45%));
 		opacity: 0;
 	}
-	20% {
+	15% {
 		opacity: 1;
 	}
-	80% {
+	55% {
 		opacity: 1;
 	}
 	100% {

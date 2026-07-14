@@ -20,35 +20,55 @@ export default function StarfieldBackground() {
           auto: false,
           originX: window.innerWidth / 2,
           originY: window.innerHeight / 2,
-          numStars: 300,
-          baseSpeed: 0.3,
-          trailLength: 0.4,
-          starColor: 'rgb(230, 230, 100)',
-          canvasColor: 'rgb(0, 0, 0)',
-          hueJitter: 40,
-          maxAcceleration: 2,
-          accelerationRate: 0.05,
-          decelerationRate: 0.02,
-          minSpawnRadius: 50,
-          maxSpawnRadius: 600,
+          // Layer 0: static twinkling stars on dark background
+          bgStaticStars: 300,
+          bgTwinkleSpeed: 0.0015,
+          // Layer 1: slow background starfield (warp stars)
+          warpStars: 260,
+          warpMaxRadius: 1400,
+          warpBaseSpeed: 0.12,
+          warpSpeedJitter: 0.06,
+          warpSizeBase: 1.3,
+          // Layer 2: 3D galaxy at mouse (appears after 1000ms idle)
+          galaxyStars: 1100,
+          armCount: 4,
+          armPitch: 0.42,
+          coreRadius: 28,
+          armInnerRadius: 60,
+          armOuterRadius: 430,
+          rotationSpeed: 0.0002,
+          galaxyTilt: 1.15,
+          galaxyTiltWobble: 0.12,
+          galaxyTiltWobbleSpeed: 0.00012,
+          coreGlowEnabled: true,
+          coreGlowRadius: 110,
+          // Layer 3: comet trail (while mouse moving)
+          cometMaxParticles: 100,
+          cometSpawnRate: 3,
+          cometParticleLife: 800,
+          cometHeadRadius: 30,
+          // State machine
+          idleThreshold: 5000,
+          fadeSpeed: 0.05,
+          // Colors
+          starColor: 'rgb(180, 210, 255)',
+          canvasColor: 'rgb(2, 2, 8)',
         })
         container.style.position = 'fixed'
         Starfield.resize(window.innerWidth, window.innerHeight)
-        Starfield.setAccelerate(true)
-
-        const handleClick = (e: MouseEvent) => {
-          Starfield.setOrigin(e.clientX, e.clientY)
-        }
-        container.addEventListener('click', handleClick)
 
         const handleMouseMove = (e: MouseEvent) => {
           Starfield.setOrigin(e.clientX, e.clientY)
         }
+        const handleResize = () => {
+          Starfield.resize(window.innerWidth, window.innerHeight)
+        }
         document.addEventListener('mousemove', handleMouseMove)
+        window.addEventListener('resize', handleResize)
 
         ;(window as any).__starfieldCleanup = () => {
-          container.removeEventListener('click', handleClick)
           document.removeEventListener('mousemove', handleMouseMove)
+          window.removeEventListener('resize', handleResize)
         }
       }
     }

@@ -5,7 +5,7 @@ import { useSize } from '@/hooks/use-size'
 import { useConfigStore } from './stores/config-store'
 import { useLayoutEditStore } from './stores/layout-edit-store'
 
-const SHIMMER_INTERVAL_MS = 21000
+const SHIMMER_INTERVAL_MS = 10000
 
 const SHIMMER_ANGLES = [
 	{ angle: '115deg', fromX: '-45%', fromY: '-45%', toX: '45%', toY: '45%' },
@@ -16,12 +16,38 @@ const SHIMMER_ANGLES = [
 	{ angle: '180deg', fromX: '0%', fromY: '-45%', toX: '0%', toY: '45%' }
 ]
 
+const DOPAMINE_COLORS = [
+	'#FF6B6B',
+	'#4ECDC4',
+	'#45B7D1',
+	'#FFA07A',
+	'#98D8C8',
+	'#F7DC6F',
+	'#BB8FCE',
+	'#85C1E9',
+	'#F8B500',
+	'#FF69B4',
+	'#00CED1',
+	'#FF7F50',
+	'#9370DB',
+	'#00FA9A',
+	'#FFD700'
+]
+
+function getRandomColors(count: number): string[] {
+	const shuffled = [...DOPAMINE_COLORS].sort(() => Math.random() - 0.5)
+	return shuffled.slice(0, count)
+}
+
 export interface ShimmerState {
 	angle: string
 	fromX: string
 	fromY: string
 	toX: string
 	toY: string
+	color1: string
+	color2: string
+	color3: string
 	nonce: number
 }
 
@@ -69,10 +95,11 @@ export function ShimmerProvider({ children }: { children: React.ReactNode }) {
 			const candidates = pool.length > 0 ? pool : eligibleKeys
 			const next = candidates[Math.floor(Math.random() * candidates.length)]
 			const preset = SHIMMER_ANGLES[Math.floor(Math.random() * SHIMMER_ANGLES.length)]
+			const [color1, color2, color3] = getRandomColors(3)
 			nonceRef.current += 1
 			lastKeyRef.current = next
 			setActiveKey(next)
-			setShimmer({ ...preset, nonce: nonceRef.current })
+			setShimmer({ ...preset, color1, color2, color3, nonce: nonceRef.current })
 		}
 
 		tick()

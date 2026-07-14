@@ -56,7 +56,10 @@ export default function Card({ children, order, width, height, x, y, className, 
 								'--shimmer-from-x': shimmer.fromX,
 								'--shimmer-from-y': shimmer.fromY,
 								'--shimmer-to-x': shimmer.toX,
-								'--shimmer-to-y': shimmer.toY
+								'--shimmer-to-y': shimmer.toY,
+								'--shimmer-color-1': shimmer.color1,
+								'--shimmer-color-2': shimmer.color2,
+								'--shimmer-color-3': shimmer.color3
 							} as React.CSSProperties
 						}
 					/>

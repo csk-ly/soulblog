@@ -1,453 +1,736 @@
 /*
- * starfield.js
+ * starfield.js  v6.0.0
  *
- * Version: 1.5.0
- * Description: Interactive starfield background
+ * Four-layer architecture with state machine:
+ *   Layer 0 — Static stars: twinkling fixed stars on dark background (背景星点)
+ *   Layer 1 — Slow starfield: slow radial outward stars (穿越星空, always on)
+ *   Layer 2 — Galaxy: 3D tilted spiral galaxy at mouse, appears after 1000ms idle (银河系)
+ *   Layer 3 — Comet: glowing comet trail follows cursor while moving (彗星)
  *
- * Usage:
- *  Starfield.setup({
- *    // options
- *  });
+ * State machine:
+ *   mouse moving        → comet mode (galaxy fades out, comet fades in)
+ *   mouse idle > 1000ms → galaxy mode (comet fades out, galaxy fades in)
+ *
+ * Performance: zero per-frame color conversion, no Perlin noise, pooled comet particles.
  */
-(function(root, factory) {
-  if (typeof define === "function" && define.amd) {
-    define([], factory);
-  } else if (typeof module === "object" && module.exports) {
-    module.exports = factory();
+(function (root, factory) {
+  if (typeof define === 'function' && define.amd) {
+    define([], factory)
+  } else if (typeof module === 'object' && module.exports) {
+    module.exports = factory()
   } else {
-    root.Starfield = factory();
+    root.Starfield = factory()
   }
-}(this, function() {
-  const Starfield = {};
+}(this, function () {
+  const Starfield = {}
 
   const config = {
-    numStars: 250,                    // Number of stars
-    baseSpeed: 1,                     // Base speed of stars (will affect acceleration)
-    trailLength: 0.8,                 // Length of star trail (0-1)
-    starColor: "rgb(255, 255, 255)",  // Color of stars (only rgb)
-    canvasColor: "rgb(0, 0, 0)",      // Canvas background color (only rgb)
-    hueJitter: 0,                     // Maximum hue variation in degrees (0-360)
-    maxAcceleration: 10,              // Maximum acceleration
-    accelerationRate: 0.2,            // Rate of acceleration
-    decelerationRate: 0.2,            // Rate of deceleration
-    minSpawnRadius: 80,               // Minimum spawn distance from origin
-    maxSpawnRadius: 500,              // Maximum spawn distance from origin
-    auto: true,
-    originX: null,
-    originY: null,
-    container: null,
-    originElement: null,
-  };
+    // ─── Layer 0: Static background stars (twinkling) ───
+    bgStaticStars: 300,
+    bgTwinkleSpeed: 0.0015,
 
-  let stars = [];
-  let accelerate = false;
-  let accelerationFactor = 0;
-  let originX = 0;
-  let originY = 0;
-  let prevOriginX = 0;
-  let prevOriginY = 0;
+    // ─── Layer 1: Slow background starfield ───
+    warpStars: 260,
+    warpMaxRadius: 1400,
+    warpBaseSpeed: 0.12,
+    warpSpeedJitter: 0.06,
+    warpSizeBase: 1.3,
 
-  let canvas, ctx;
-  let width, height;
-  let lastTimestamp = 0;
-  let canvasRGB = [0, 0, 0];
-  let lastCanvasColor = config.canvasColor;
+    // ─── Layer 2: Galaxy (3D) ───
+    galaxyStars: 120,
+    armCount: 2,
+    armPitch: 0.42,
+    coreRadius: 28,
+    armInnerRadius: 55,
+    armOuterRadius: 320,
+    rotationSpeed: 0.0002,
+    galaxyTilt: 1.15,
+    galaxyTiltWobble: 0.12,
+    galaxyTiltWobbleSpeed: 0.00012,
+    coreGlowEnabled: true,
+    coreGlowRadius: 120,
 
-  let origin;
-  let container;
+    // ─── Layer 3: Comet ───
+    cometMaxParticles: 100,
+    cometSpawnRate: 3,
+    cometParticleLife: 800,
+    cometHeadRadius: 30,
 
-  const mouseEnterHandler = () => (accelerate = true);
-  const mouseLeaveHandler = () => (accelerate = false);
-  const resizeHandler = () => windowResized(container, origin);
+    // ─── State machine ───
+    idleThreshold: 5000,
+    fadeSpeed: 0.05,
 
-  function visibilityHandler() {
-    if (document.visibilityState === "visible") {
-      lastTimestamp = performance.now();
-    }
+    // ─── Colors ───
+    starColor: 'rgb(180, 210, 255)',
+    canvasColor: 'rgb(2, 2, 8)',
   }
 
-  function getOriginY(origin, container) {
-    const originRect = origin.getBoundingClientRect();
-    const containerRect = container.getBoundingClientRect();
-    return originRect.top - containerRect.top + originRect.height / 2;
-  }
+  // ─── State ───
+  let bgStaticList = []
+  let warpStarList = []
+  let galaxyStarList = []
+  let cometParticles = []
+  let cometPoolIdx = 0
+  let centerX = 0
+  let centerY = 0
+  let originX = 0
+  let originY = 0
+  let mouseVelX = 0
+  let mouseVelY = 0
+  let lastMouseMoveTime = 0
+  let galaxyAlpha = 0
+  let cometAlpha = 0
+  let isMoving = false
+  let canvas
+  let ctx
+  let width
+  let height
+  let lastTimestamp = 0
+  let canvasRGB = [2, 2, 8]
+  let currentTilt = 1.15
 
-  function getOriginX(origin, container) {
-    const originRect = origin.getBoundingClientRect();
-    const containerRect = container.getBoundingClientRect();
-    return originRect.left - containerRect.left + originRect.width / 2;
-  }
+  // Pre-computed palettes
+  let bgPalette = []
+  let corePalette = []
+  let armPalette = []
+  let hiiPalette = []
+  let brightPalette = []
+  let cometPalette = []
 
-  /**
-   * Set up and start the starfield animation.
-   * @param {Object} userConfig Configuration options.
-   */
-  function setup(userConfig = {}) {
-    Object.assign(config, userConfig);
-
-    container = config.container || document.querySelector(".starfield");
-    if (!container) {
-      throw new Error("Starfield: No container element found.");
-    }
-    container.style.position = "relative";
-
-    width = container.clientWidth;
-    height = container.clientHeight;
-
-    canvas = document.createElement("canvas");
-    canvas.width = width;
-    canvas.height = height;
-
-    canvas.style.position = "absolute";
-    canvas.style.top = "0";
-    canvas.style.left = "0";
-    canvas.style.width = "100%";
-    canvas.style.height = "100%";
-    canvas.style.zIndex = "-1";
-    canvasRGB = parseRGBA(config.canvasColor);
-
-    container.appendChild(canvas);
-
-    ctx = canvas.getContext("2d");
-
-    if (config.auto) {
-      origin = config.originElement || document.querySelector(".starfield-origin");
-      if (!origin) {
-        throw new Error("Starfield: No origin element found.");
-      }
-      originX = getOriginX(origin, container);
-      originY = getOriginY(origin, container);
-
-      origin.addEventListener("mouseenter", mouseEnterHandler);
-      origin.addEventListener("mouseleave", mouseLeaveHandler);
-
-      window.addEventListener("resize", resizeHandler);
-    } else {
-      originX = config.originX !== null ? config.originX : width / 2;
-      originY = config.originY !== null ? config.originY : height / 2;
-    }
-
-    for (let i = 0; i < config.numStars; i++) {
-      const star = createRandomStar();
-      stars.push(star);
-    }
-
-    document.addEventListener("visibilitychange", visibilityHandler);
-
-    requestAnimationFrame(draw);
-  }
-
-  function windowResized(container, origin) {
-    width = container.clientWidth;
-    height = container.clientHeight;
-    canvas.width = width;
-    canvas.height = height;
-
-    originX = getOriginX(origin, container);
-    originY = getOriginY(origin, container);
-
-    stars.forEach(star => star.reset());
-  }
-
-  function createRandomStar() {
-    const angle = random(0, Math.PI * 2);
-    const radius = random(config.minSpawnRadius, config.maxSpawnRadius);
-
-    const x = originX + Math.cos(angle) * radius;
-    const y = originY + Math.sin(angle) * radius;
-
-    return new Star(x, y);
-  }
-
-  class Star {
-    constructor(x, y) {
-      this.pos = {
-        x: x,
-        y: y
-      };
-      this.prevpos = {
-        x: x,
-        y: y
-      };
-      this.vel = {
-        x: 0,
-        y: 0
-      };
-      this.angle = Math.atan2(y - originY, x - originX);
-      this.baseSpeed = random(config.baseSpeed * 0.5, config.baseSpeed * 1.5);
-      this.hueOffset = random(-config.hueJitter, config.hueJitter);
-    }
-
-    reset() {
-      const newStar = createRandomStar();
-      this.pos.x = newStar.pos.x;
-      this.pos.y = newStar.pos.y;
-      this.prevpos.x = this.pos.x;
-      this.prevpos.y = this.pos.y;
-      this.vel.x = 0;
-      this.vel.y = 0;
-      this.angle = Math.atan2(this.pos.y - originY, this.pos.x - originX);
-      this.baseSpeed = random(config.baseSpeed * 0.5, config.baseSpeed * 1.5);
-      this.hueOffset = random(-config.hueJitter, config.hueJitter);
-    }
-
-    update(acc, deltaTime) {
-      const adjustedAcc = acc * this.baseSpeed;
-
-      this.vel.x += Math.cos(this.angle) * adjustedAcc * deltaTime;
-      this.vel.y += Math.sin(this.angle) * adjustedAcc * deltaTime;
-
-      this.prevpos.x = this.pos.x;
-      this.prevpos.y = this.pos.y;
-      this.pos.x += this.vel.x * deltaTime;
-      this.pos.y += this.vel.y * deltaTime;
-    }
-
-    draw() {
-      const velMag = Math.sqrt(this.vel.x * this.vel.x + this.vel.y * this.vel.y);
-      const alpha = map(velMag, 0, 10, 0, 1);
-      const weight = map(velMag, 0, 10, 1, 3);
-
-      ctx.lineWidth = weight;
-
-      const [r, g, b] = parseRGBA(config.starColor);
-      const [h, s, l] = rgbToHsl(r, g, b);
-      const adjustedH = (h + this.hueOffset + 360) % 360;
-      const [newR, newG, newB] = hslToRgb(adjustedH, s, l).map(v => Math.round(v));
-      ctx.strokeStyle = `rgba(${newR}, ${newG}, ${newB}, ${alpha})`;
-
-      ctx.beginPath();
-      ctx.moveTo(this.prevpos.x, this.prevpos.y);
-      ctx.lineTo(this.pos.x, this.pos.y);
-      ctx.stroke();
-    }
-
-    isActive() {
-      return onScreen(this.pos.x, this.pos.y);
-    }
-
-    updateAngle() {
-      this.angle = Math.atan2(this.pos.y - originY, this.pos.x - originX);
-    }
-  }
-
-  function draw(timestamp) {
-    if (!lastTimestamp) lastTimestamp = timestamp;
-    const deltaTime = (timestamp - lastTimestamp) / 16.67;
-    lastTimestamp = timestamp;
-
-    if (config.auto) {
-      originX = getOriginX(origin, container);
-      originY = getOriginY(origin, container);
-      if (originX !== prevOriginX || originY !== prevOriginY) {
-        stars.forEach(star => {
-          star.updateAngle();
-        });
-        prevOriginX = originX;
-        prevOriginY = originY;
-      }
-    }
-
-    if (lastCanvasColor !== config.canvasColor) {
-      canvasRGB = parseRGBA(config.canvasColor);
-      lastCanvasColor = config.canvasColor;
-    }
-    const [bgR, bgG, bgB] = canvasRGB;
-    ctx.fillStyle = `rgba(${bgR}, ${bgG}, ${bgB}, ${1 - config.trailLength})`;
-    ctx.fillRect(0, 0, width, height);
-
-    if (accelerate) {
-      accelerationFactor = Math.min(accelerationFactor + config.accelerationRate * deltaTime, config.maxAcceleration);
-    } else {
-      accelerationFactor = Math.max(accelerationFactor - config.decelerationRate * deltaTime, 0);
-    }
-
-    const baseAcc = 0.01;
-    const currentAcc = baseAcc * (1 + accelerationFactor * 10);
-
-    for (let star of stars) {
-      star.update(currentAcc, deltaTime);
-      star.draw();
-      if (!star.isActive()) {
-        star.reset();
-      }
-    }
-
-    requestAnimationFrame(draw);
-  }
-
-  function onScreen(x, y) {
-    return x >= 0 && x <= width && y >= 0 && y <= height;
-  }
-
-  function random(min, max) {
-    return Math.random() * (max - min) + min;
-  }
-
-  // https://gist.github.com/mjackson/5311256
-  function rgbToHsl(r, g, b) {
-    r /= 255;
-    g /= 255;
-    b /= 255;
-    const max = Math.max(r, g, b),
-      min = Math.min(r, g, b);
-    let h, s, l = (max + min) / 2;
-
-    if (max === min) {
-      h = s = 0;
-    } else {
-      const d = max - min;
-      s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+  // ─── Color helpers (init only) ───
+  function rgbToHsl (r, g, b) {
+    r /= 255; g /= 255; b /= 255
+    const max = Math.max(r, g, b)
+    const min = Math.min(r, g, b)
+    let h
+    let s
+    const l = (max + min) / 2
+    if (max === min) { h = s = 0 } else {
+      const d = max - min
+      s = l > 0.5 ? d / (2 - max - min) : d / (max + min)
       switch (max) {
-        case r:
-          h = ((g - b) / d + (g < b ? 6 : 0));
-          break;
-        case g:
-          h = ((b - r) / d + 2);
-          break;
-        case b:
-          h = ((r - g) / d + 4);
-          break;
+        case r: h = ((g - b) / d + (g < b ? 6 : 0)); break
+        case g: h = ((b - r) / d + 2); break
+        default: h = ((r - g) / d + 4); break
       }
-      h /= 6;
+      h /= 6
     }
-
-    return [h * 360, s, l];
+    return [h * 360, s, l]
+  }
+  function hslToRgb (h, s, l) {
+    let r, g, b
+    h = h / 360
+    if (s === 0) { r = g = b = l } else {
+      const hue2rgb = function (p, q, t) {
+        if (t < 0) t += 1
+        if (t > 1) t -= 1
+        if (t < 1 / 6) return p + (q - p) * 6 * t
+        if (t < 1 / 2) return q
+        if (t < 2 / 3) return p + (q - p) * (2 / 3 - t) * 6
+        return p
+      }
+      const q = l < 0.5 ? l * (1 + s) : l + s - l * s
+      const p = 2 * l - q
+      r = hue2rgb(p, q, h + 1 / 3)
+      g = hue2rgb(p, q, h)
+      b = hue2rgb(p, q, h - 1 / 3)
+    }
+    return [r * 255, g * 255, b * 255]
+  }
+  function parseRGBA (color) {
+    const match = color.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)/)
+    return match ? [parseInt(match[1], 10), parseInt(match[2], 10), parseInt(match[3], 10)] : [255, 255, 255]
+  }
+  function roundRGB (rgb) {
+    return [Math.round(rgb[0]), Math.round(rgb[1]), Math.round(rgb[2])]
   }
 
-  // https://gist.github.com/mjackson/5311256
-  function hslToRgb(h, s, l) {
-    let r, g, b;
-    h = h / 360;
+  function buildPalettes () {
+    const baseRgb = parseRGBA(config.starColor)
+    const baseHsl = rgbToHsl(baseRgb[0], baseRgb[1], baseRgb[2])
 
-    if (s === 0) {
-      r = g = b = l;
+    // Background: cool whites & pale blues
+    bgPalette = []
+    for (let i = 0; i < 16; i++) {
+      const t = i / 15
+      const l = 0.72 + t * 0.26
+      const h = (baseHsl[0] + (t - 0.5) * 25 + 360) % 360
+      bgPalette.push(roundRGB(hslToRgb(h, baseHsl[1] * 0.4, l)))
+    }
+
+    // Galaxy core: deep indigo → soft blue (深邃的蓝)
+    corePalette = []
+    for (let i = 0; i < 12; i++) {
+      const t = i / 11
+      const h = 222 + t * 18
+      const s = 0.70 + t * 0.15
+      const l = 0.45 + t * 0.15
+      corePalette.push(roundRGB(hslToRgb(h, s, l)))
+    }
+
+    // Galaxy arms: radial color gradient (realistic temperature gradient)
+    // Inner → outer: gold → white → blue-white → cool blue
+    armPalette = []
+    for (let i = 0; i < 48; i++) {
+      const t = i / 47
+      let h, s, l
+      if (t < 0.25) {
+        // Inner: gold → white-gold
+        h = 45 - t * 60
+        s = 0.55 - t * 0.6
+        l = 0.82 + t * 0.08
+      } else if (t < 0.5) {
+        // Mid-inner: white → blue-white
+        h = 30 + (t - 0.25) * 720
+        s = 0.15 + (t - 0.25) * 1.4
+        l = 0.90 - (t - 0.25) * 0.6
+      } else if (t < 0.75) {
+        // Mid-outer: blue-white
+        h = 210 + (t - 0.5) * 60
+        s = 0.45 + (t - 0.5) * 1.0
+        l = 0.75 - (t - 0.5) * 0.4
+      } else {
+        // Outer: cool blue
+        h = 220 + (t - 0.75) * 40
+        s = 0.70 + (t - 0.75) * 0.8
+        l = 0.65 - (t - 0.75) * 0.3
+      }
+      armPalette.push(roundRGB(hslToRgb(h, Math.min(s, 0.95), Math.max(Math.min(l, 0.92), 0.45))))
+    }
+
+    // HII regions: pink/red star-forming nebulae
+    hiiPalette = []
+    for (let i = 0; i < 10; i++) {
+      const t = i / 9
+      const h = 330 + t * 20
+      const s = 0.85
+      const l = 0.65 - t * 0.1
+      hiiPalette.push(roundRGB(hslToRgb(h, s, l)))
+    }
+
+    // Bright stars: hot blue-white giants
+    brightPalette = []
+    for (let i = 0; i < 8; i++) {
+      const t = i / 7
+      const h = 200 - t * 15
+      const s = 0.25 + t * 0.15
+      const l = 0.88 + t * 0.08
+      brightPalette.push(roundRGB(hslToRgb(h, s, l)))
+    }
+
+    // Comet: warm white → amber (distinguishes from cool galaxy)
+    cometPalette = []
+    for (let i = 0; i < 16; i++) {
+      const t = i / 15
+      const h = 48 - t * 18
+      const s = 0.35 + t * 0.3
+      const l = 0.8 - t * 0.15
+      cometPalette.push(roundRGB(hslToRgb(h, s, l)))
+    }
+  }
+
+  // ─── Layer 0: Static background star (twinkling, fixed position) ───
+  function BgStar () { this.reset() }
+  BgStar.prototype.reset = function () {
+    this.x = Math.random() * width
+    this.y = Math.random() * height
+    this.sizeBase = 0.7 + Math.random() * 1.2
+    this.twinklePhase = Math.random() * Math.PI * 2
+    this.twinkleSpeed = 0.5 + Math.random() * 2.0
+    this.colorIdx = Math.floor(Math.random() * bgPalette.length)
+    this.baseBrightness = 0.30 + Math.random() * 0.55
+  }
+  BgStar.prototype.draw = function (time) {
+    var twinkle = 0.5 + 0.5 * Math.sin(time * config.bgTwinkleSpeed * this.twinkleSpeed + this.twinklePhase)
+    var alpha = this.baseBrightness * twinkle
+    if (alpha <= 0.02) return
+    var c = bgPalette[this.colorIdx]
+    ctx.fillStyle = 'rgba(' + c[0] + ',' + c[1] + ',' + c[2] + ',' + alpha + ')'
+    ctx.beginPath()
+    ctx.arc(this.x, this.y, this.sizeBase, 0, Math.PI * 2)
+    ctx.fill()
+  }
+
+  // ─── Layer 1: Warp Star (slow radial outward from screen center) ───
+  function WarpStar () { this.reset(true) }
+  WarpStar.prototype.reset = function (initial) {
+    this.angle = Math.random() * Math.PI * 2
+    this.distance = initial ? Math.random() * config.warpMaxRadius : 0
+    this.speed = config.warpBaseSpeed + Math.random() * config.warpSpeedJitter
+    this.sizeBase = config.warpSizeBase * (0.5 + Math.random() * 1.2)
+    this.colorIdx = Math.floor(Math.random() * bgPalette.length)
+    this.x = centerX + Math.cos(this.angle) * this.distance
+    this.y = centerY + Math.sin(this.angle) * this.distance
+    this.px = this.x
+    this.py = this.y
+  }
+  WarpStar.prototype.update = function (dt) {
+    this.px = this.x
+    this.py = this.y
+    this.distance += this.speed * dt
+    if (this.distance > config.warpMaxRadius) {
+      this.distance = 0
+      this.angle = Math.random() * Math.PI * 2
+      this.x = centerX
+      this.y = centerY
+      this.px = this.x
+      this.py = this.y
+      return
+    }
+    this.x = centerX + Math.cos(this.angle) * this.distance
+    this.y = centerY + Math.sin(this.angle) * this.distance
+  }
+  WarpStar.prototype.draw = function () {
+    var fadeIn = Math.min(this.distance / 80, 1)
+    var fadeOut = Math.max(0, 1 - (this.distance - config.warpMaxRadius * 0.78) / (config.warpMaxRadius * 0.22))
+    var alpha = fadeIn * fadeOut * 0.85
+    if (alpha <= 0.01) return
+    var lw = this.sizeBase * (0.6 + this.distance / config.warpMaxRadius * 0.8)
+    var c = bgPalette[this.colorIdx]
+    ctx.strokeStyle = 'rgba(' + c[0] + ',' + c[1] + ',' + c[2] + ',' + alpha + ')'
+    ctx.lineWidth = lw
+    ctx.beginPath()
+    ctx.moveTo(this.px, this.py)
+    ctx.lineTo(this.x, this.y)
+    ctx.stroke()
+  }
+
+  // ─── Layer 2: Galaxy Star (3D tilted spiral arms around mouse) ───
+  function GalaxyStar () { this.reset(true) }
+  GalaxyStar.prototype.reset = function (initial) {
+    this.inCore = Math.random() < 0.22
+    this.isHII = false
+    this.isBright = false
+    if (this.inCore) {
+      this.radius = Math.random() * config.coreRadius
+      this.armIndex = 0
+      // Core: roughly spherical bulge — scatter in all directions
+      this.z = (Math.random() - 0.5) * config.coreRadius * 1.2
     } else {
-      const hue2rgb = (p, q, t) => {
-        if (t < 0) t += 1;
-        if (t > 1) t -= 1;
-        if (t < 1 / 6) return p + (q - p) * 6 * t;
-        if (t < 1 / 2) return q;
-        if (t < 2 / 3) return p + (q - p) * (2 / 3 - t) * 6;
-        return p;
-      };
-
-      const q = l < 0.5 ? l * (1 + s) : l + s - l * s;
-      const p = 2 * l - q;
-      r = hue2rgb(p, q, h + 1 / 3);
-      g = hue2rgb(p, q, h);
-      b = hue2rgb(p, q, h - 1 / 3);
+      var t = Math.random()
+      // Bias toward inner (denser like real galaxies)
+      this.radius = config.armInnerRadius + t * t * (config.armOuterRadius - config.armInnerRadius)
+      this.armIndex = Math.floor(Math.random() * config.armCount)
+      // HII regions: ~5% of arm particles
+      if (Math.random() < 0.05) {
+        this.isHII = true
+      } else if (Math.random() < 0.05) {
+        // Bright blue giants: ~5%
+        this.isBright = true
+      }
+      // Arm: thin disk — small vertical scatter
+      this.z = (Math.random() - 0.5) * 28
     }
+    var armBase = this.armIndex * (Math.PI * 2 / config.armCount)
+    var spiralOffset = (1 / config.armPitch) * Math.log(this.radius / config.coreRadius)
+    // Wider spread for outer particles (arms diffuse outward)
+    var spread = this.inCore ? 0.5 : (0.30 + (this.radius / config.armOuterRadius) * 0.15)
+    this.phase = armBase + spiralOffset + (Math.random() - 0.5) * spread
+    this.sizeBase = (this.inCore ? 0.7 : 0.5) + Math.random() * 0.9
+    if (this.isHII) this.sizeBase *= 2.2
+    if (this.isBright) this.sizeBase *= 1.8
 
-    return [r * 255, g * 255, b * 255];
-  }
-
-  function parseRGBA(color) {
-    const rgbaRegex = /rgba?\((\d+),\s*(\d+),\s*(\d+)/;
-    const match = color.match(rgbaRegex);
-    if (match) {
-      return [parseInt(match[1], 10), parseInt(match[2], 10), parseInt(match[3], 10)];
-    }
-    return [255, 255, 255];
-  }
-
-  function map(value, start1, stop1, start2, stop2) {
-    return ((value - start1) / (stop1 - start1)) * (stop2 - start2) + start2;
-  }
-
-  /**
-   * Set the acceleration state of the starfield.
-   * @param {boolean} state The acceleration state.
-   */
-  function setAccelerate(state) {
-    accelerate = state;
-  }
-
-  /**
-   * Set the x-coordinate of the origin of the starfield.
-   * @param {number} x The x-coordinate of the origin.
-   */
-  function setOriginX(x) {
-    originX = x;
-    stars.forEach(star => {
-      star.angle = Math.atan2(star.pos.y - originY, star.pos.x - originX);
-    });
-  }
-
-  /**
-   * Set the y-coordinate of the origin of the starfield.
-   * @param {number} y The y-coordinate of the origin.
-   */
-  function setOriginY(y) {
-    originY = y;
-    stars.forEach(star => {
-      star.angle = Math.atan2(star.pos.y - originY, star.pos.x - originX);
-    });
-  }
-
-  /**
-   * Set the origin of the starfield to a specific point.
-   * @param {number} x The x-coordinate of the origin.
-   * @param {number} y The y-coordinate of the origin.
-   */
-  function setOrigin(x, y) {
-    originX = x;
-    originY = y;
-    stars.forEach(star => {
-      star.angle = Math.atan2(star.pos.y - originY, star.pos.x - originX);
-    });
-  }
-
-  /**
-   * Resize the starfield to a new width and height.
-   * @param {number} newWidth The new width of the starfield.
-   * @param {number} newHeight The new height of the starfield.
-   */
-  function resize(newWidth, newHeight) {
-    width = newWidth;
-    height = newHeight;
-    canvas.width = width;
-    canvas.height = height;
-
-    if (config.originY !== null) {
-      originY = config.originY;
+    // Color assignment
+    if (this.inCore) {
+      this.colorIdx = Math.floor(Math.random() * corePalette.length)
+    } else if (this.isHII) {
+      this.colorIdx = Math.floor(Math.random() * hiiPalette.length)
+    } else if (this.isBright) {
+      this.colorIdx = Math.floor(Math.random() * brightPalette.length)
     } else {
-      originY = height / 2;
+      // Color by normalized radius (radial temperature gradient)
+      var normR = (this.radius - config.armInnerRadius) / (config.armOuterRadius - config.armInnerRadius)
+      normR = Math.max(0, Math.min(1, normR))
+      this.colorIdx = Math.floor(normR * (armPalette.length - 1))
+    }
+    this.depthFactor = 1
+    this.x = originX + Math.cos(this.phase) * this.radius
+    this.y = originY + Math.sin(this.phase) * this.radius
+    this.px = this.x
+    this.py = this.y
+  }
+  GalaxyStar.prototype.update = function (time) {
+    var angle = this.phase + time * config.rotationSpeed
+    // 3D position: galactic plane (x, z), vertical (y)
+    var x3d = Math.cos(angle) * this.radius
+    var z3d = Math.sin(angle) * this.radius
+    var y3d = this.z
+    // Tilt around X axis (viewing angle)
+    var cosT = Math.cos(currentTilt)
+    var sinT = Math.sin(currentTilt)
+    var projY = y3d * cosT - z3d * sinT
+    var depth = y3d * sinT + z3d * cosT
+    this.px = this.x
+    this.py = this.y
+    this.x = originX + x3d
+    this.y = originY + projY
+    // Depth factor: near side brighter, far side dimmer
+    var normDepth = depth / config.armOuterRadius
+    this.depthFactor = Math.max(0.3, Math.min(1.0, 0.65 - normDepth * 0.4))
+  }
+  GalaxyStar.prototype.draw = function (alphaMul) {
+    var baseAlpha = this.inCore ? 1.0 : 0.88
+    if (this.isHII) baseAlpha = 0.75
+    if (this.isBright) baseAlpha = 1.0
+    var alpha = baseAlpha * alphaMul * (this.depthFactor || 1)
+    if (alpha <= 0.01) return
+    var coreFactor = Math.max(0, 1 - this.radius / config.armOuterRadius)
+    var r = Math.min(this.sizeBase * (0.6 + coreFactor * 0.7), 3.5)
+    var c
+    if (this.inCore) {
+      c = corePalette[this.colorIdx]
+    } else if (this.isHII) {
+      c = hiiPalette[this.colorIdx]
+    } else if (this.isBright) {
+      c = brightPalette[this.colorIdx]
+    } else {
+      c = armPalette[this.colorIdx]
+    }
+    var rgbStr = c[0] + ',' + c[1] + ',' + c[2]
+
+    // HII: extra-large diffuse nebula glow
+    if (this.isHII) {
+      ctx.fillStyle = 'rgba(' + rgbStr + ',' + (alpha * 0.12) + ')'
+      ctx.beginPath()
+      ctx.arc(this.x, this.y, r * 6, 0, Math.PI * 2)
+      ctx.fill()
+      ctx.fillStyle = 'rgba(' + rgbStr + ',' + (alpha * 0.25) + ')'
+      ctx.beginPath()
+      ctx.arc(this.x, this.y, r * 3.5, 0, Math.PI * 2)
+      ctx.fill()
     }
 
-    stars.forEach(star => star.reset());
+    // Wide soft glow
+    ctx.fillStyle = 'rgba(' + rgbStr + ',' + (alpha * 0.20) + ')'
+    ctx.beginPath()
+    ctx.arc(this.x, this.y, r * 4, 0, Math.PI * 2)
+    ctx.fill()
+    // Medium glow
+    ctx.fillStyle = 'rgba(' + rgbStr + ',' + (alpha * 0.40) + ')'
+    ctx.beginPath()
+    ctx.arc(this.x, this.y, r * 2, 0, Math.PI * 2)
+    ctx.fill()
+    // Bright core dot
+    ctx.fillStyle = 'rgba(' + rgbStr + ',' + alpha + ')'
+    ctx.beginPath()
+    ctx.arc(this.x, this.y, r, 0, Math.PI * 2)
+    ctx.fill()
   }
 
-  function cleanup() {
-    if (origin) {
-      origin.removeEventListener("mouseenter", mouseEnterHandler);
-      origin.removeEventListener("mouseleave", mouseLeaveHandler);
-    }
-    window.removeEventListener("resize", resizeHandler);
-    document.removeEventListener("visibilitychange", visibilityHandler);
-
-    if (canvas && canvas.parentNode) {
-      canvas.parentNode.removeChild(canvas);
-    }
-
-    stars = [];
-    accelerate = false;
-    accelerationFactor = 0;
-    originX = 0;
-    originY = 0;
-    prevOriginX = 0;
-    prevOriginY = 0;
-    lastTimestamp = 0;
+  // ─── Layer 3: Comet Particle (pooled) ───
+  function CometParticle () {
+    this.active = false
+    this.x = 0
+    this.y = 0
+    this.px = 0
+    this.py = 0
+    this.vx = 0
+    this.vy = 0
+    this.life = 0
+    this.size = 1
+    this.colorIdx = 0
+  }
+  CometParticle.prototype.spawn = function (x, y, vx, vy) {
+    this.active = true
+    this.x = x
+    this.y = y
+    this.px = x
+    this.py = y
+    var speed = Math.sqrt(vx * vx + vy * vy)
+    // Fly backward relative to mouse movement direction
+    var dirX = speed > 0 ? vx / speed : 0
+    var dirY = speed > 0 ? vy / speed : 0
+    var spread = 0.4
+    this.vx = -dirX * (0.5 + Math.random() * 1.5) + (Math.random() - 0.5) * spread
+    this.vy = -dirY * (0.5 + Math.random() * 1.5) + (Math.random() - 0.5) * spread
+    this.life = 1.0
+    this.size = 0.5 + Math.random() * 1.0
+    this.colorIdx = Math.floor(Math.random() * cometPalette.length)
+  }
+  CometParticle.prototype.update = function (dt) {
+    if (!this.active) return
+    this.px = this.x
+    this.py = this.y
+    this.x += this.vx * dt
+    this.y += this.vy * dt
+    this.vx *= 0.97
+    this.vy *= 0.97
+    this.life -= (dt * 16.67) / config.cometParticleLife
+    if (this.life <= 0) this.active = false
+  }
+  CometParticle.prototype.draw = function () {
+    if (!this.active) return
+    var alpha = this.life * cometAlpha
+    if (alpha <= 0.01) return
+    var c = cometPalette[this.colorIdx]
+    // Glow
+    ctx.strokeStyle = 'rgba(' + c[0] + ',' + c[1] + ',' + c[2] + ',' + (alpha * 0.2) + ')'
+    ctx.lineWidth = this.size * 4
+    ctx.beginPath()
+    ctx.moveTo(this.px, this.py)
+    ctx.lineTo(this.x, this.y)
+    ctx.stroke()
+    // Core
+    ctx.strokeStyle = 'rgba(' + c[0] + ',' + c[1] + ',' + c[2] + ',' + alpha + ')'
+    ctx.lineWidth = this.size * 1.5
+    ctx.beginPath()
+    ctx.moveTo(this.px, this.py)
+    ctx.lineTo(this.x, this.y)
+    ctx.stroke()
   }
 
-  Starfield.setup = setup;
-  Starfield.setAccelerate = setAccelerate;
-  Starfield.setOrigin = setOrigin;
-  Starfield.setOriginX = setOriginX;
-  Starfield.setOriginY = setOriginY;
-  Starfield.resize = resize;
-  Starfield.config = config;
-  Starfield.cleanup = cleanup;
+  function spawnComet (x, y, vx, vy) {
+    var p = cometParticles[cometPoolIdx]
+    p.spawn(x, y, vx, vy)
+    cometPoolIdx = (cometPoolIdx + 1) % cometParticles.length
+  }
 
-  return Starfield;
-}));
+  function drawCometHead () {
+    if (cometAlpha < 0.01) return
+    var r = config.cometHeadRadius
+    var grad = ctx.createRadialGradient(originX, originY, 0, originX, originY, r)
+    grad.addColorStop(0, 'rgba(255, 250, 230, ' + (0.55 * cometAlpha) + ')')
+    grad.addColorStop(0.2, 'rgba(255, 220, 150, ' + (0.28 * cometAlpha) + ')')
+    grad.addColorStop(0.5, 'rgba(255, 180, 80, ' + (0.1 * cometAlpha) + ')')
+    grad.addColorStop(1, 'rgba(255, 150, 50, 0)')
+    ctx.fillStyle = grad
+    ctx.beginPath()
+    ctx.arc(originX, originY, r, 0, Math.PI * 2)
+    ctx.fill()
+    // Bright nucleus
+    ctx.fillStyle = 'rgba(255, 255, 245, ' + (0.85 * cometAlpha) + ')'
+    ctx.beginPath()
+    ctx.arc(originX, originY, 2, 0, Math.PI * 2)
+    ctx.fill()
+  }
+
+  // ─── 3D projection helper (shared by update + repositionGalaxy) ───
+  function projectGalaxy3D (star, time) {
+    var angle = star.phase + time * config.rotationSpeed
+    var x3d = Math.cos(angle) * star.radius
+    var z3d = Math.sin(angle) * star.radius
+    var y3d = star.z
+    var cosT = Math.cos(currentTilt)
+    var sinT = Math.sin(currentTilt)
+    var projY = y3d * cosT - z3d * sinT
+    var depth = y3d * sinT + z3d * cosT
+    star.x = originX + x3d
+    star.y = originY + projY
+    var normDepth = depth / config.armOuterRadius
+    star.depthFactor = Math.max(0.3, Math.min(1.0, 0.65 - normDepth * 0.4))
+  }
+
+  // ─── Setup ───
+  function setup (userConfig) {
+    Object.assign(config, userConfig || {})
+    var container = config.container || document.querySelector('.starfield')
+    if (!container) throw new Error('Starfield: No container element found.')
+    container.style.position = 'relative'
+
+    width = container.clientWidth
+    height = container.clientHeight
+    centerX = width / 2
+    centerY = height / 2
+    originX = config.originX != null ? config.originX : centerX
+    originY = config.originY != null ? config.originY : centerY
+    currentTilt = config.galaxyTilt
+
+    canvas = document.createElement('canvas')
+    canvas.width = width
+    canvas.height = height
+    canvas.style.position = 'absolute'
+    canvas.style.top = '0'
+    canvas.style.left = '0'
+    canvas.style.width = '100%'
+    canvas.style.height = '100%'
+    canvas.style.zIndex = '-1'
+    canvasRGB = parseRGBA(config.canvasColor)
+    container.appendChild(canvas)
+    ctx = canvas.getContext('2d')
+    ctx.lineCap = 'round'
+
+    buildPalettes()
+
+    bgStaticList = []
+    for (var s0 = 0; s0 < config.bgStaticStars; s0++) bgStaticList.push(new BgStar())
+
+    warpStarList = []
+    for (var i = 0; i < config.warpStars; i++) warpStarList.push(new WarpStar())
+
+    galaxyStarList = []
+    for (var j = 0; j < config.galaxyStars; j++) galaxyStarList.push(new GalaxyStar())
+
+    cometParticles = []
+    for (var k = 0; k < config.cometMaxParticles; k++) cometParticles.push(new CometParticle())
+
+    lastMouseMoveTime = 0
+
+    document.addEventListener('visibilitychange', function () {
+      if (document.visibilityState === 'visible') lastTimestamp = 0
+    })
+
+    requestAnimationFrame(draw)
+  }
+
+  // ─── Main loop ───
+  function draw (timestamp) {
+    if (!lastTimestamp) lastTimestamp = timestamp
+    var dt = Math.min((timestamp - lastTimestamp) / 16.67, 3)
+    lastTimestamp = timestamp
+
+    // ─── State machine ───
+    var hasMoved = lastMouseMoveTime > 0
+    var isIdle = !hasMoved || (timestamp - lastMouseMoveTime) > config.idleThreshold
+
+    // Lerp alphas for smooth crossfade (galaxy fades in faster than comet fades out)
+    var galaxyTarget = isIdle ? 1 : 0
+    var cometTarget = isIdle ? 0 : 1
+    galaxyAlpha += (galaxyTarget - galaxyAlpha) * 0.12 * dt
+    cometAlpha += (cometTarget - cometAlpha) * 0.05 * dt
+    galaxyAlpha = Math.max(0, Math.min(1, galaxyAlpha))
+    cometAlpha = Math.max(0, Math.min(1, cometAlpha))
+
+    // ─── Trail fade ───
+    ctx.globalCompositeOperation = 'source-over'
+    ctx.fillStyle = 'rgba(' + canvasRGB[0] + ',' + canvasRGB[1] + ',' + canvasRGB[2] + ',0.55)'
+    ctx.fillRect(0, 0, width, height)
+
+    // ─── Layer 0: Static background stars (twinkling) ───
+    ctx.globalCompositeOperation = 'lighter'
+    for (var s0 = 0; s0 < bgStaticList.length; s0++) {
+      bgStaticList[s0].draw(timestamp)
+    }
+
+    // ─── Layer 1: Background warp (always on, lighter for glow) ───
+    ctx.globalCompositeOperation = 'lighter'
+    for (var b = 0; b < warpStarList.length; b++) {
+      warpStarList[b].update(dt)
+      warpStarList[b].draw()
+    }
+
+    // ─── Layer 2: Galaxy (3D) ───
+    // Compute current tilt (slowly wobbling for 3D feel)
+    currentTilt = config.galaxyTilt + Math.sin(timestamp * config.galaxyTiltWobbleSpeed) * config.galaxyTiltWobble
+    // Always update positions (continuous rotation), only draw when visible
+    for (var i = 0; i < galaxyStarList.length; i++) {
+      galaxyStarList[i].update(timestamp)
+    }
+    if (galaxyAlpha > 0.01) {
+      // Erase galaxy region with opaque background to clear warp trails beneath it
+      ctx.globalCompositeOperation = 'source-over'
+      var galaxyR = config.armOuterRadius + config.coreGlowRadius * 0.5
+      ctx.fillStyle = 'rgb(' + canvasRGB[0] + ',' + canvasRGB[1] + ',' + canvasRGB[2] + ')'
+      ctx.fillRect(originX - galaxyR, originY - galaxyR, galaxyR * 2, galaxyR * 2)
+
+      ctx.globalCompositeOperation = 'lighter'
+      if (config.coreGlowEnabled) {
+        var r = config.coreGlowRadius
+        var bulgeScale = Math.cos(currentTilt) * 0.6 + 0.4
+        ctx.save()
+        ctx.translate(originX, originY)
+        ctx.scale(1, bulgeScale)
+        // Inner bulge: deep blue core (深邃的蓝，不刺眼)
+        var grad1 = ctx.createRadialGradient(0, 0, 0, 0, 0, r * 0.5)
+        grad1.addColorStop(0, 'rgba(120, 145, 255, ' + (0.55 * galaxyAlpha) + ')')
+        grad1.addColorStop(0.3, 'rgba(70, 95, 220, ' + (0.32 * galaxyAlpha) + ')')
+        grad1.addColorStop(1, 'rgba(0, 0, 0, 0)')
+        ctx.fillStyle = grad1
+        ctx.beginPath()
+        ctx.arc(0, 0, r * 0.5, 0, Math.PI * 2)
+        ctx.fill()
+        // Outer halo: faint blue-violet, very soft
+        var grad2 = ctx.createRadialGradient(0, 0, 0, 0, 0, r)
+        grad2.addColorStop(0, 'rgba(90, 120, 230, ' + (0.22 * galaxyAlpha) + ')')
+        grad2.addColorStop(0.3, 'rgba(60, 85, 200, ' + (0.12 * galaxyAlpha) + ')')
+        grad2.addColorStop(0.7, 'rgba(40, 60, 160, ' + (0.05 * galaxyAlpha) + ')')
+        grad2.addColorStop(1, 'rgba(0, 0, 0, 0)')
+        ctx.fillStyle = grad2
+        ctx.beginPath()
+        ctx.arc(0, 0, r, 0, Math.PI * 2)
+        ctx.fill()
+        ctx.restore()
+      }
+      for (var i2 = 0; i2 < galaxyStarList.length; i2++) {
+        galaxyStarList[i2].draw(galaxyAlpha)
+      }
+    }
+
+    // ─── Layer 3: Comet ───
+    if (cometAlpha > 0.01) {
+      ctx.globalCompositeOperation = 'lighter'
+      // Spawn particles while mouse is actively moving
+      if (isMoving && (mouseVelX * mouseVelX + mouseVelY * mouseVelY) > 1) {
+        for (var s = 0; s < config.cometSpawnRate; s++) {
+          spawnComet(originX, originY, mouseVelX, mouseVelY)
+        }
+      }
+      // Update and draw all comet particles
+      for (var c = 0; c < cometParticles.length; c++) {
+        cometParticles[c].update(dt)
+        cometParticles[c].draw()
+      }
+      // Comet head glow
+      drawCometHead()
+    }
+
+    // Decay mouse velocity
+    mouseVelX *= 0.85
+    mouseVelY *= 0.85
+    if (mouseVelX * mouseVelX + mouseVelY * mouseVelY < 1) {
+      isMoving = false
+    }
+
+    ctx.globalCompositeOperation = 'source-over'
+    requestAnimationFrame(draw)
+  }
+
+  // ─── Public API ───
+  function repositionGalaxy () {
+    // Recompute all galaxy star positions for current origin + sync prev pos
+    // Prevents streak flashes when origin jumps while galaxy is still visible
+    var time = lastTimestamp || performance.now()
+    for (var i = 0; i < galaxyStarList.length; i++) {
+      var s = galaxyStarList[i]
+      projectGalaxy3D(s, time)
+      s.px = s.x
+      s.py = s.y
+    }
+  }
+  function setOrigin (x, y) {
+    // Track mouse velocity for comet direction
+    mouseVelX = x - originX
+    mouseVelY = y - originY
+    originX = x
+    originY = y
+    lastMouseMoveTime = performance.now()
+    isMoving = true
+    // Recompute galaxy positions to new origin immediately
+    repositionGalaxy()
+  }
+  function resize (w, h) {
+    width = w
+    height = h
+    centerX = w / 2
+    centerY = h / 2
+    canvas.width = w
+    canvas.height = h
+    warpStarList.forEach(function (s) { s.reset(true) })
+    bgStaticList.forEach(function (s) { s.reset() })
+  }
+  function cleanup () {
+    if (canvas && canvas.parentNode) canvas.parentNode.removeChild(canvas)
+    bgStaticList = []
+    warpStarList = []
+    galaxyStarList = []
+    cometParticles = []
+    lastTimestamp = 0
+  }
+
+  Starfield.setup = setup
+  Starfield.setOrigin = setOrigin
+  Starfield.resize = resize
+  Starfield.config = config
+  Starfield.cleanup = cleanup
+
+  return Starfield
+}))
