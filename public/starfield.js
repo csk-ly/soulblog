@@ -37,18 +37,18 @@
     warpSizeBase: 1.3,
 
     // ─── Layer 2: Galaxy (3D) ───
-    galaxyStars: 120,
+    galaxyStars: 4000,
     armCount: 2,
-    armPitch: 0.42,
-    coreRadius: 28,
-    armInnerRadius: 55,
-    armOuterRadius: 320,
+    armPitch: 0.55,
+    coreRadius: 40,
+    armInnerRadius: 80,
+    armOuterRadius: 500,
     rotationSpeed: 0.0002,
-    galaxyTilt: 1.15,
-    galaxyTiltWobble: 0.12,
-    galaxyTiltWobbleSpeed: 0.00012,
+    galaxyTilt: 1.42,
+    galaxyTiltWobble: 0.45,
+    galaxyTiltWobbleSpeed: 0.0008,
     coreGlowEnabled: true,
-    coreGlowRadius: 120,
+    coreGlowRadius: 100,
 
     // ─── Layer 3: Comet ───
     cometMaxParticles: 100,
@@ -57,7 +57,7 @@
     cometHeadRadius: 30,
 
     // ─── State machine ───
-    idleThreshold: 5000,
+    idleThreshold: 3000,
     fadeSpeed: 0.05,
 
     // ─── Colors ───
@@ -79,8 +79,10 @@
   let mouseVelY = 0
   let lastMouseMoveTime = 0
   let galaxyAlpha = 0
+  let galaxyScale = 1.0
   let cometAlpha = 0
   let isMoving = false
+  let prevIsIdle = false
   let canvas
   let ctx
   let width
@@ -158,64 +160,78 @@
       bgPalette.push(roundRGB(hslToRgb(h, baseHsl[1] * 0.4, l)))
     }
 
-    // Galaxy core: deep indigo → soft blue (深邃的蓝)
+    // Galaxy core: warm gold → white-gold (真实星系核心)
     corePalette = []
     for (let i = 0; i < 12; i++) {
       const t = i / 11
-      const h = 222 + t * 18
-      const s = 0.70 + t * 0.15
-      const l = 0.45 + t * 0.15
-      corePalette.push(roundRGB(hslToRgb(h, s, l)))
+      const h = 45 - t * 8
+      const s = 0.40 - t * 0.15
+      const l = 0.78 + t * 0.18
+      corePalette.push(roundRGB(hslToRgb(h, Math.max(s, 0.15), Math.min(l, 0.96))))
     }
 
-    // Galaxy arms: radial color gradient (realistic temperature gradient)
-    // Inner → outer: gold → white → blue-white → cool blue
+    // Galaxy arms: radial color gradient (星云深邃蓝紫)
+    // Inner → outer: warm gold → blue-white → deep nebula blue-purple
     armPalette = []
     for (let i = 0; i < 48; i++) {
       const t = i / 47
       let h, s, l
-      if (t < 0.25) {
-        // Inner: gold → white-gold
-        h = 45 - t * 60
-        s = 0.55 - t * 0.6
-        l = 0.82 + t * 0.08
-      } else if (t < 0.5) {
-        // Mid-inner: white → blue-white
-        h = 30 + (t - 0.25) * 720
-        s = 0.15 + (t - 0.25) * 1.4
-        l = 0.90 - (t - 0.25) * 0.6
-      } else if (t < 0.75) {
-        // Mid-outer: blue-white
-        h = 210 + (t - 0.5) * 60
-        s = 0.45 + (t - 0.5) * 1.0
-        l = 0.75 - (t - 0.5) * 0.4
+      if (t < 0.15) {
+        // Inner: warm gold (核心边缘)
+        h = 45 - t * 80
+        s = 0.50 - t * 0.4
+        l = 0.82
+      } else if (t < 0.30) {
+        // Inner-mid: blue-white transition
+        h = 200 + (t - 0.15) * 100
+        s = 0.10 + (t - 0.15) * 1.5
+        l = 0.85 - (t - 0.15) * 0.5
+      } else if (t < 0.55) {
+        // Mid: blue (星云蓝)
+        h = 215 + (t - 0.30) * 30
+        s = 0.55 + (t - 0.30) * 1.0
+        l = 0.72 - (t - 0.30) * 0.30
+      } else if (t < 0.80) {
+        // Outer-mid: deep nebula blue (深邃星云蓝)
+        h = 225 + (t - 0.55) * 30
+        s = 0.85 + (t - 0.55) * 0.10
+        l = 0.55 - (t - 0.55) * 0.30
       } else {
-        // Outer: cool blue
-        h = 220 + (t - 0.75) * 40
-        s = 0.70 + (t - 0.75) * 0.8
-        l = 0.65 - (t - 0.75) * 0.3
+        // Outer: deep blue-violet (深邃紫蓝)
+        h = 250 + (t - 0.80) * 20
+        s = 0.80
+        l = 0.40 - (t - 0.80) * 0.15
       }
-      armPalette.push(roundRGB(hslToRgb(h, Math.min(s, 0.95), Math.max(Math.min(l, 0.92), 0.45))))
+      armPalette.push(roundRGB(hslToRgb(h, Math.min(s, 0.95), Math.max(Math.min(l, 0.92), 0.25))))
     }
 
-    // HII regions: pink/red star-forming nebulae
+    // HII regions: deep magenta star-forming nebulae (深邃紫红, 不抢戏)
     hiiPalette = []
     for (let i = 0; i < 10; i++) {
       const t = i / 9
-      const h = 330 + t * 20
-      const s = 0.85
-      const l = 0.65 - t * 0.1
+      const h = 320 + t * 15
+      const s = 0.70
+      const l = 0.55 - t * 0.10
       hiiPalette.push(roundRGB(hslToRgb(h, s, l)))
     }
 
-    // Bright stars: hot blue-white giants
+    // Bright stars: blue-white + warm gold (深邃星云中点缀)
     brightPalette = []
-    for (let i = 0; i < 8; i++) {
-      const t = i / 7
-      const h = 200 - t * 15
-      const s = 0.25 + t * 0.15
-      const l = 0.88 + t * 0.08
-      brightPalette.push(roundRGB(hslToRgb(h, s, l)))
+    for (let i = 0; i < 10; i++) {
+      const t = i / 9
+      let h, s, l
+      if (i < 6) {
+        // Blue-white giants
+        h = 205 - t * 10
+        s = 0.30 + t * 0.15
+        l = 0.85 + t * 0.05
+      } else {
+        // Warm gold giants (蓝紫色星云中的暖色亮星)
+        h = 40 + (t - 0.5) * 20
+        s = 0.55 + (t - 0.5) * 0.20
+        l = 0.75 + (t - 0.5) * 0.08
+      }
+      brightPalette.push(roundRGB(hslToRgb(h, s, Math.min(l, 0.92))))
     }
 
     // Comet: warm white → amber (distinguishes from cool galaxy)
@@ -304,31 +320,31 @@
     if (this.inCore) {
       this.radius = Math.random() * config.coreRadius
       this.armIndex = 0
-      // Core: roughly spherical bulge — scatter in all directions
-      this.z = (Math.random() - 0.5) * config.coreRadius * 1.2
+      // Core: roughly spherical bulge — scatter in all directions (3D 球形核心)
+      this.z = (Math.random() - 0.5) * config.coreRadius * 2.0
     } else {
       var t = Math.random()
       // Bias toward inner (denser like real galaxies)
       this.radius = config.armInnerRadius + t * t * (config.armOuterRadius - config.armInnerRadius)
       this.armIndex = Math.floor(Math.random() * config.armCount)
-      // HII regions: ~5% of arm particles
-      if (Math.random() < 0.05) {
+      // HII regions: ~3% of arm particles (深邃紫红, 适度)
+      if (Math.random() < 0.03) {
         this.isHII = true
-      } else if (Math.random() < 0.05) {
-        // Bright blue giants: ~5%
+      } else if (Math.random() < 0.04) {
+        // Bright stars: ~4% (蓝白巨星 + 暖色巨星)
         this.isBright = true
       }
-      // Arm: thin disk — small vertical scatter
-      this.z = (Math.random() - 0.5) * 28
+      // Arm: thin disk — small vertical scatter (3D 厚度)
+      this.z = (Math.random() - 0.5) * 70
     }
     var armBase = this.armIndex * (Math.PI * 2 / config.armCount)
     var spiralOffset = (1 / config.armPitch) * Math.log(this.radius / config.coreRadius)
-    // Wider spread for outer particles (arms diffuse outward)
-    var spread = this.inCore ? 0.5 : (0.30 + (this.radius / config.armOuterRadius) * 0.15)
+    // Tighter arms (清晰的旋臂, 不弥散)
+    var spread = this.inCore ? 0.4 : (2.0 + (this.radius / config.armOuterRadius) * 1.0)
     this.phase = armBase + spiralOffset + (Math.random() - 0.5) * spread
-    this.sizeBase = (this.inCore ? 0.7 : 0.5) + Math.random() * 0.9
-    if (this.isHII) this.sizeBase *= 2.2
-    if (this.isBright) this.sizeBase *= 1.8
+    this.sizeBase = (this.inCore ? 0.9 : 0.7) + Math.random() * 1.2
+    if (this.isHII) this.sizeBase *= 1.8
+    if (this.isBright) this.sizeBase *= 2.0
 
     // Color assignment
     if (this.inCore) {
@@ -362,11 +378,11 @@
     var depth = y3d * sinT + z3d * cosT
     this.px = this.x
     this.py = this.y
-    this.x = originX + x3d
-    this.y = originY + projY
-    // Depth factor: near side brighter, far side dimmer
+    this.x = originX + x3d * galaxyScale
+    this.y = originY + projY * galaxyScale
+    // Depth factor: near side brighter, far side dimmer (增强 3D 深度对比)
     var normDepth = depth / config.armOuterRadius
-    this.depthFactor = Math.max(0.3, Math.min(1.0, 0.65 - normDepth * 0.4))
+    this.depthFactor = Math.max(0.05, Math.min(1.0, 0.55 - normDepth * 0.5))
   }
   GalaxyStar.prototype.draw = function (alphaMul) {
     var baseAlpha = this.inCore ? 1.0 : 0.88
@@ -388,27 +404,45 @@
     }
     var rgbStr = c[0] + ',' + c[1] + ',' + c[2]
 
-    // HII: extra-large diffuse nebula glow
+    // HII: small, tight nebula glow (深邃紫红星云, 不抢戏)
     if (this.isHII) {
-      ctx.fillStyle = 'rgba(' + rgbStr + ',' + (alpha * 0.12) + ')'
-      ctx.beginPath()
-      ctx.arc(this.x, this.y, r * 6, 0, Math.PI * 2)
-      ctx.fill()
-      ctx.fillStyle = 'rgba(' + rgbStr + ',' + (alpha * 0.25) + ')'
+      ctx.fillStyle = 'rgba(' + rgbStr + ',' + (alpha * 0.06) + ')'
       ctx.beginPath()
       ctx.arc(this.x, this.y, r * 3.5, 0, Math.PI * 2)
       ctx.fill()
+      ctx.fillStyle = 'rgba(' + rgbStr + ',' + (alpha * 0.15) + ')'
+      ctx.beginPath()
+      ctx.arc(this.x, this.y, r * 1.8, 0, Math.PI * 2)
+      ctx.fill()
     }
 
-    // Wide soft glow
-    ctx.fillStyle = 'rgba(' + rgbStr + ',' + (alpha * 0.20) + ')'
+    // Bright stars: very subtle cross-shaped glow (亮星十字光芒, 微弱)
+    if (this.isBright) {
+      ctx.fillStyle = 'rgba(' + rgbStr + ',' + (alpha * 0.05) + ')'
+      ctx.beginPath()
+      ctx.arc(this.x, this.y, r * 3, 0, Math.PI * 2)
+      ctx.fill()
+      // Diffraction spikes (十字光芒, 短而细)
+      ctx.strokeStyle = 'rgba(' + rgbStr + ',' + (alpha * 0.18) + ')'
+      ctx.lineWidth = 0.5
+      var spikeLen = r * 2.5
+      ctx.beginPath()
+      ctx.moveTo(this.x - spikeLen, this.y)
+      ctx.lineTo(this.x + spikeLen, this.y)
+      ctx.moveTo(this.x, this.y - spikeLen)
+      ctx.lineTo(this.x, this.y + spikeLen)
+      ctx.stroke()
+    }
+
+    // Soft glow (reduced radius)
+    ctx.fillStyle = 'rgba(' + rgbStr + ',' + (alpha * 0.15) + ')'
     ctx.beginPath()
-    ctx.arc(this.x, this.y, r * 4, 0, Math.PI * 2)
+    ctx.arc(this.x, this.y, r * 2.5, 0, Math.PI * 2)
     ctx.fill()
     // Medium glow
-    ctx.fillStyle = 'rgba(' + rgbStr + ',' + (alpha * 0.40) + ')'
+    ctx.fillStyle = 'rgba(' + rgbStr + ',' + (alpha * 0.35) + ')'
     ctx.beginPath()
-    ctx.arc(this.x, this.y, r * 2, 0, Math.PI * 2)
+    ctx.arc(this.x, this.y, r * 1.4, 0, Math.PI * 2)
     ctx.fill()
     // Bright core dot
     ctx.fillStyle = 'rgba(' + rgbStr + ',' + alpha + ')'
@@ -514,10 +548,10 @@
     var sinT = Math.sin(currentTilt)
     var projY = y3d * cosT - z3d * sinT
     var depth = y3d * sinT + z3d * cosT
-    star.x = originX + x3d
-    star.y = originY + projY
+    star.x = originX + x3d * galaxyScale
+    star.y = originY + projY * galaxyScale
     var normDepth = depth / config.armOuterRadius
-    star.depthFactor = Math.max(0.3, Math.min(1.0, 0.65 - normDepth * 0.4))
+    star.depthFactor = Math.max(0.05, Math.min(1.0, 0.55 - normDepth * 0.5))
   }
 
   // ─── Setup ───
@@ -582,10 +616,22 @@
     var hasMoved = lastMouseMoveTime > 0
     var isIdle = !hasMoved || (timestamp - lastMouseMoveTime) > config.idleThreshold
 
-    // Lerp alphas for smooth crossfade (galaxy fades in faster than comet fades out)
+    // Detect transitions for converge/disperse:
+    //   idle starts  → galaxy converges inward (scale 2.5 → 1.0, over 1s)
+    //   moving starts → galaxy disperses outward (scale 1.0 → 3.0, over 2s)
+    if (isIdle && !prevIsIdle) {
+      galaxyScale = 2.5 // start wide, will converge inward
+    }
+    prevIsIdle = isIdle
+
+    // Galaxy alpha: fade in ~1s (0.05), fade out ~2s (0.025)
     var galaxyTarget = isIdle ? 1 : 0
     var cometTarget = isIdle ? 0 : 1
-    galaxyAlpha += (galaxyTarget - galaxyAlpha) * 0.12 * dt
+    var galaxyFadeRate = isIdle ? 0.05 : 0.025
+    galaxyAlpha += (galaxyTarget - galaxyAlpha) * galaxyFadeRate * dt
+    // Galaxy scale: converge to 1.0 when idle, disperse to 3.0 when moving
+    var galaxyScaleTarget = isIdle ? 1.0 : 3.0
+    galaxyScale += (galaxyScaleTarget - galaxyScale) * galaxyFadeRate * dt
     cometAlpha += (cometTarget - cometAlpha) * 0.05 * dt
     galaxyAlpha = Math.max(0, Math.min(1, galaxyAlpha))
     cometAlpha = Math.max(0, Math.min(1, cometAlpha))
@@ -625,24 +671,24 @@
       ctx.globalCompositeOperation = 'lighter'
       if (config.coreGlowEnabled) {
         var r = config.coreGlowRadius
-        var bulgeScale = Math.cos(currentTilt) * 0.6 + 0.4
+        var bulgeScale = Math.cos(currentTilt) * 0.5 + 0.5
         ctx.save()
         ctx.translate(originX, originY)
         ctx.scale(1, bulgeScale)
-        // Inner bulge: deep blue core (深邃的蓝，不刺眼)
+        // Inner bulge: warm gold-white core (真实星系核心, 收紧)
         var grad1 = ctx.createRadialGradient(0, 0, 0, 0, 0, r * 0.5)
-        grad1.addColorStop(0, 'rgba(120, 145, 255, ' + (0.55 * galaxyAlpha) + ')')
-        grad1.addColorStop(0.3, 'rgba(70, 95, 220, ' + (0.32 * galaxyAlpha) + ')')
+        grad1.addColorStop(0, 'rgba(255, 248, 220, ' + (0.50 * galaxyAlpha) + ')')
+        grad1.addColorStop(0.3, 'rgba(255, 230, 180, ' + (0.28 * galaxyAlpha) + ')')
         grad1.addColorStop(1, 'rgba(0, 0, 0, 0)')
         ctx.fillStyle = grad1
         ctx.beginPath()
         ctx.arc(0, 0, r * 0.5, 0, Math.PI * 2)
         ctx.fill()
-        // Outer halo: faint blue-violet, very soft
+        // Outer halo: faint warm gold, very soft
         var grad2 = ctx.createRadialGradient(0, 0, 0, 0, 0, r)
-        grad2.addColorStop(0, 'rgba(90, 120, 230, ' + (0.22 * galaxyAlpha) + ')')
-        grad2.addColorStop(0.3, 'rgba(60, 85, 200, ' + (0.12 * galaxyAlpha) + ')')
-        grad2.addColorStop(0.7, 'rgba(40, 60, 160, ' + (0.05 * galaxyAlpha) + ')')
+        grad2.addColorStop(0, 'rgba(255, 235, 190, ' + (0.20 * galaxyAlpha) + ')')
+        grad2.addColorStop(0.3, 'rgba(230, 200, 150, ' + (0.10 * galaxyAlpha) + ')')
+        grad2.addColorStop(0.7, 'rgba(180, 150, 110, ' + (0.04 * galaxyAlpha) + ')')
         grad2.addColorStop(1, 'rgba(0, 0, 0, 0)')
         ctx.fillStyle = grad2
         ctx.beginPath()
