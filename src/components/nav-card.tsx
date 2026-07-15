@@ -64,7 +64,7 @@ export default function NavCard() {
 	const center = useCenterStore()
 	const [show, setShow] = useState(false)
 	const { maxSM } = useSize()
-	const [hoveredIndex, setHoveredIndex] = useState<number>(0)
+	const [hoveredIndex, setHoveredIndex] = useState<number>(-1)
 	const { siteContent, cardStyles } = useConfigStore()
 	const styles = cardStyles.navCard
 	const hiCardStyles = cardStyles.hiCard
@@ -77,6 +77,10 @@ export default function NavCard() {
 	useEffect(() => {
 		setShow(true)
 	}, [])
+
+	useEffect(() => {
+		setHoveredIndex(-1)
+	}, [pathname])
 
 	let form = useMemo(() => {
 		if (pathname == '/') return 'full'
@@ -105,15 +109,6 @@ export default function NavCard() {
 		else if (form === 'icons') return { width: 340, height: 64 }
 		else return { width: styles.width, height: styles.height }
 	}, [form, styles])
-
-	useEffect(() => {
-		if (form === 'icons' && activeIndex !== undefined && hoveredIndex !== activeIndex) {
-			const timer = setTimeout(() => {
-				setHoveredIndex(activeIndex)
-			}, 1500)
-			return () => clearTimeout(timer)
-		}
-	}, [hoveredIndex, activeIndex, form])
 
 	if (maxSM) position = { x: center.x - size.width / 2, y: 16 }
 
@@ -168,7 +163,10 @@ export default function NavCard() {
 										stiffness: 400,
 										damping: 30
 									}}
-									style={{ backgroundImage: 'linear-gradient(to right bottom, var(--color-border) 60%, var(--color-card) 100%)' }}
+									style={{
+										backgroundImage: 'linear-gradient(to right bottom, var(--color-border) 60%, var(--color-card) 100%)',
+										opacity: hoveredIndex < 0 ? 0 : 1
+									}}
 								/>
 
 								{list.map((item, index) => (

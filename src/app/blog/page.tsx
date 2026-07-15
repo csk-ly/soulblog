@@ -421,7 +421,7 @@ export default function BlogPage() {
 													<Check />
 												</span>
 											)}
-											<span className='text-secondary w-[44px] shrink-0 text-sm font-medium'>{dayjs(it.date).format('MM-DD')}</span>
+											<span className='text-secondary w-[52px] shrink-0 whitespace-nowrap text-sm font-medium'>{dayjs(it.date).format('MM-DD')}</span>
 
 											<div className='relative flex h-2 w-2 items-center justify-center'>
 												<div className='bg-secondary group-hover:bg-brand h-[5px] w-[5px] rounded-full transition-all group-hover:h-4'></div>
