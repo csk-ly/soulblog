@@ -70,6 +70,7 @@ export default function NavCard() {
 	const hiCardStyles = cardStyles.hiCard
 
 	const activeIndex = useMemo(() => {
+		if (!pathname) return undefined
 		// 前缀匹配：/blog/[id] 也算"近期文章"激活
 		const index = list.findIndex(item => pathname === item.href || pathname.startsWith(item.href + '/'))
 		return index >= 0 ? index : undefined
@@ -149,7 +150,7 @@ export default function NavCard() {
 							<div className={cn('relative mt-2 space-y-2', form === 'icons' && 'mt-0 flex items-center gap-6 space-y-0')}>
 								<motion.div
 									className='absolute max-w-[230px] rounded-full border'
-									layoutId='nav-hover'
+									layoutId={`nav-hover-${form}`}
 									initial={false}
 									animate={
 										form === 'icons'
