@@ -70,9 +70,12 @@ export default function NavCard() {
 	const hiCardStyles = cardStyles.hiCard
 
 	const activeIndex = useMemo(() => {
-		const index = list.findIndex(item => pathname === item.href)
+		// 前缀匹配：/blog/[id] 也算"近期文章"激活
+		const index = list.findIndex(item => pathname === item.href || pathname.startsWith(item.href + '/'))
 		return index >= 0 ? index : undefined
 	}, [pathname])
+
+	const displayedIndex = hoveredIndex >= 0 ? hoveredIndex : activeIndex ?? -1
 
 	useEffect(() => {
 		setShow(true)
@@ -151,12 +154,12 @@ export default function NavCard() {
 									animate={
 										form === 'icons'
 											? {
-													left: hoveredIndex * (itemHeight + 24) - extraSize,
+													left: displayedIndex * (itemHeight + 24) - extraSize,
 													top: -extraSize,
 													width: itemHeight + extraSize * 2,
 													height: itemHeight + extraSize * 2
 												}
-											: { top: hoveredIndex * (itemHeight + 8), left: 0, width: '100%', height: itemHeight }
+											: { top: displayedIndex * (itemHeight + 8), left: 0, width: '100%', height: itemHeight }
 									}
 									transition={{
 										type: 'spring',
@@ -165,7 +168,7 @@ export default function NavCard() {
 									}}
 									style={{
 										backgroundImage: 'linear-gradient(to right bottom, var(--color-border) 60%, var(--color-card) 100%)',
-										opacity: hoveredIndex < 0 ? 0 : 1
+										opacity: displayedIndex < 0 ? 0 : 1
 									}}
 								/>
 
@@ -174,11 +177,12 @@ export default function NavCard() {
 										key={item.href}
 										href={item.href}
 										className={cn('text-secondary text-md relative z-10 flex items-center gap-3 rounded-full px-5 py-3', form === 'icons' && 'p-0')}
-										onMouseEnter={() => setHoveredIndex(index)}>
+										onMouseEnter={() => setHoveredIndex(index)}
+										onMouseLeave={() => setHoveredIndex(-1)}>
 										<div className='flex h-7 w-7 items-center justify-center'>
-											{hoveredIndex == index ? <item.iconActive className='text-brand absolute h-7 w-7' /> : <item.icon className='absolute h-7 w-7' />}
+											{displayedIndex == index ? <item.iconActive className='text-brand absolute h-7 w-7' /> : <item.icon className='absolute h-7 w-7' />}
 										</div>
-										{form !== 'icons' && <span className={clsx(index == hoveredIndex && 'text-primary font-medium')}>{item.label}</span>}
+										{form !== 'icons' && <span className={clsx(index == displayedIndex && 'text-primary font-medium')}>{item.label}</span>}
 									</Link>
 								))}
 							</div>
