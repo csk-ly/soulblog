@@ -12,7 +12,7 @@ export default function BeianCard() {
 	const hiCardStyles = cardStyles.hiCard
 	const articleCardStyles = cardStyles.articleCard
 
-	const x = styles.offsetX !== null ? center.x + styles.offsetX : center.x + hiCardStyles.width / 2 - styles.width + 200
+	const x = styles.offsetX !== null ? center.x + styles.offsetX : center.x + hiCardStyles.width / 2 - styles.width + 240
 	const y = styles.offsetY !== null ? center.y + styles.offsetY : center.y + hiCardStyles.height / 2 + CARD_SPACING + 180
 
 	const beian = siteContent.beian

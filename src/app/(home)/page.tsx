@@ -11,6 +11,7 @@ import WriteButtons from '@/app/(home)/write-buttons'
 import LikePosition from './like-position'
 import HatCard from './hat-card'
 import BeianCard from './beian-card'
+import QuoteCard from './quote-card'
 import { useSize } from '@/hooks/use-size'
 import { motion } from 'motion/react'
 import { useLayoutEditStore } from './stores/layout-edit-store'
@@ -77,19 +78,20 @@ export default function Home() {
 				</div>
 			)}
 
-			<div className='max-sm:flex max-sm:flex-col max-sm:items-center max-sm:gap-6 max-sm:pt-28 max-sm:pb-20'>
-				{cardStyles.artCard?.enabled !== false && <ArtCard />}
-				{cardStyles.hiCard?.enabled !== false && <HiCard />}
-				{!maxSM && cardStyles.clockCard?.enabled !== false && <ClockCard />}
-				{!maxSM && cardStyles.calendarCard?.enabled !== false && <CalendarCard />}
-				{cardStyles.socialButtons?.enabled !== false && <SocialButtons />}
-				{!maxSM && cardStyles.shareCard?.enabled !== false && <ShareCard />}
-				{cardStyles.articleCard?.enabled !== false && <AritcleCard />}
-				{!maxSM && cardStyles.writeButtons?.enabled !== false && <WriteButtons />}
-				{cardStyles.likePosition?.enabled !== false && <LikePosition />}
-				{cardStyles.hatCard?.enabled !== false && <HatCard />}
-				{cardStyles.beianCard?.enabled !== false && <BeianCard />}
-			</div>
+		<div className='max-sm:flex max-sm:flex-col max-sm:items-center max-sm:gap-6 max-sm:pt-28 max-sm:pb-20'>
+			{cardStyles.quoteCard?.enabled !== false && <QuoteCard />}
+			{cardStyles.hiCard?.enabled !== false && <HiCard />}
+			{!maxSM && cardStyles.clockCard?.enabled !== false && <ClockCard />}
+			{!maxSM && cardStyles.calendarCard?.enabled !== false && <CalendarCard />}
+			{cardStyles.socialButtons?.enabled !== false && <SocialButtons />}
+			{!maxSM && cardStyles.shareCard?.enabled !== false && <ShareCard />}
+			{cardStyles.articleCard?.enabled !== false && <AritcleCard />}
+			{!maxSM && cardStyles.writeButtons?.enabled !== false && <WriteButtons />}
+			{cardStyles.likePosition?.enabled !== false && <LikePosition />}
+			{cardStyles.hatCard?.enabled !== false && <HatCard />}
+			{cardStyles.artCard?.enabled !== false && <ArtCard />}
+			{cardStyles.beianCard?.enabled !== false && <BeianCard />}
+		</div>
 
 			{siteContent.enableChristmas && <SnowfallBackground zIndex={2} count={!maxSM ? 125 : 20} />}
 			<ConfigDialog open={configDialogOpen} onClose={() => setConfigDialogOpen(false)} />
